@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OCPP Central Management System</title>
+    <link rel="stylesheet" href="/stylesheets/style.css" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      .header {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        margin-bottom: 30px;
+      }
+
+      .header h1 {
+        color: #333;
+        margin-bottom: 10px;
+      }
+
+      .header p {
+        color: #666;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .stat-card {
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+
+      .stat-card h3 {
+        color: #666;
+        font-size: 14px;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .stat-card .value {
+        font-size: 36px;
+        font-weight: bold;
+        color: #667eea;
+      }
+
+      .section {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        margin-bottom: 30px;
+      }
+
+      .section h2 {
+        color: #333;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #667eea;
+      }
+
+      .charger-list {
+        display: grid;
+        gap: 15px;
+      }
+
+      .charger-card {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        border-left: 4px solid #667eea;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .charger-card.connected {
+        border-left-color: #28a745;
+      }
+
+      .charger-card.disconnected {
+        border-left-color: #dc3545;
+      }
+
+      .charger-info h3 {
+        color: #333;
+        margin-bottom: 5px;
+      }
+
+      .charger-info p {
+        color: #666;
+        font-size: 14px;
+      }
+
+      .charger-status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .status-badge {
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+        text-transform: uppercase;
+      }
+
+      .status-badge.connected {
+        background: #d4edda;
+        color: #155724;
+      }
+
+      .status-badge.disconnected {
+        background: #f8d7da;
+        color: #721c24;
+      }
+
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+        transition: all 0.3s;
+      }
+
+      .btn-primary {
+        background: #667eea;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #5568d3;
+      }
+
+      .btn-danger {
+        background: #dc3545;
+        color: white;
+      }
+
+      .btn-danger:hover {
+        background: #c82333;
+      }
+
+      .refresh-btn {
+        background: #28a745;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+        margin-bottom: 20px;
+      }
+
+      .refresh-btn:hover {
+        background: #218838;
+      }
+
+      .tag-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 10px;
+        margin-top: 15px;
+      }
+
+      .tag-item {
+        background: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .tag-item.authorized {
+        border-left: 3px solid #28a745;
+      }
+
+      .tag-item.blocked {
+        border-left: 3px solid #dc3545;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        color: #333;
+        font-weight: bold;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 14px;
+      }
+
+      .form-actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: #999;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🔌 OCPP Central Management System</h1>
+        <p>Monitor and manage your charging stations</p>
+      </div>
+
+      <div class="stats">
+        <div class="stat-card">
+          <h3>Connected Chargers</h3>
+          <div class="value" id="connectedCount">0</div>
+        </div>
+        <div class="stat-card">
+          <h3>Total Chargers</h3>
+          <div class="value" id="totalCount">0</div>
+        </div>
+        <div class="stat-card">
+          <h3>Active Transactions</h3>
+          <div class="value" id="activeTransactions">0</div>
+        </div>
+        <div class="stat-card">
+          <h3>Authorized Tags</h3>
+          <div class="value" id="authorizedTagsCount">0</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+          "
+        >
+          <h2>Connected Charging Stations</h2>
+          <button class="refresh-btn" onclick="loadChargers()">
+            🔄 Refresh
+          </button>
+        </div>
+        <div id="chargersList" class="charger-list">
+          <div class="loading">Loading chargers...</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Authorized Tags Management</h2>
+        <div class="form-group">
+          <label>Add/Authorize Tag</label>
+          <div style="display: flex; gap: 10px">
+            <input
+              type="text"
+              id="newTagInput"
+              placeholder="Enter tag ID (e.g., TAG001)"
+            />
+            <button class="btn btn-primary" onclick="addTag()">Add Tag</button>
+            <button class="btn btn-danger" onclick="blockTag()">
+              Block Tag
+            </button>
+          </div>
+        </div>
+        <div>
+          <h3 style="margin-top: 20px; margin-bottom: 10px">Authorized Tags</h3>
+          <div id="authorizedTags" class="tag-list"></div>
+        </div>
+        <div>
+          <h3 style="margin-top: 20px; margin-bottom: 10px">Blocked Tags</h3>
+          <div id="blockedTags" class="tag-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Load data on page load
+      document.addEventListener("DOMContentLoaded", function () {
+        loadChargers();
+        loadTags();
+        // Auto-refresh every 5 seconds
+        setInterval(loadChargers, 5000);
+        setInterval(loadTags, 10000);
+      });
+
+      async function loadChargers() {
+        try {
+          const response = await fetch("/api/chargers");
+          const data = await response.json();
+
+          if (data.success) {
+            displayChargers(data.chargers);
+            updateStats(data.chargers);
+          }
+        } catch (error) {
+          console.error("Error loading chargers:", error);
+          document.getElementById("chargersList").innerHTML =
+            '<div class="empty-state">Error loading chargers. Please refresh.</div>';
+        }
+      }
+
+      function displayChargers(chargers) {
+        const container = document.getElementById("chargersList");
+
+        if (chargers.length === 0) {
+          container.innerHTML =
+            '<div class="empty-state">No charging stations connected</div>';
+          return;
+        }
+
+        container.innerHTML = chargers
+          .map((charger) => {
+            const statusClass =
+              charger.status === "connected" ? "connected" : "disconnected";
+            const lastHeartbeat = charger.lastHeartbeat
+              ? new Date(charger.lastHeartbeat).toLocaleString()
+              : "Never";
+            const connectedAt = new Date(charger.connectedAt).toLocaleString();
+
+            return `
+          <div class="charger-card ${statusClass}">
+            <div class="charger-info">
+              <h3>${charger.chargePointId}</h3>
+              <p>Connected: ${connectedAt}</p>
+              <p>Last Heartbeat: ${lastHeartbeat}</p>
+              <p>Transactions: ${charger.transactionCount} total, ${charger.activeTransactions} active</p>
+            </div>
+            <div class="charger-status">
+              <span class="status-badge ${statusClass}">${charger.status}</span>
+            </div>
+          </div>
+        `;
+          })
+          .join("");
+      }
+
+      function updateStats(chargers) {
+        const connected = chargers.filter(
+          (c) => c.status === "connected"
+        ).length;
+        const total = chargers.length;
+        const activeTransactions = chargers.reduce(
+          (sum, c) => sum + c.activeTransactions,
+          0
+        );
+
+        document.getElementById("connectedCount").textContent = connected;
+        document.getElementById("totalCount").textContent = total;
+        document.getElementById("activeTransactions").textContent =
+          activeTransactions;
+      }
+
+      async function loadTags() {
+        try {
+          const response = await fetch("/api/tags");
+          const data = await response.json();
+
+          if (data.success) {
+            displayTags(data.authorized, data.blocked);
+            document.getElementById("authorizedTagsCount").textContent =
+              data.authorized.length;
+          }
+        } catch (error) {
+          console.error("Error loading tags:", error);
+        }
+      }
+
+      function displayTags(authorized, blocked) {
+        const authorizedContainer = document.getElementById("authorizedTags");
+        const blockedContainer = document.getElementById("blockedTags");
+
+        authorizedContainer.innerHTML =
+          authorized.length === 0
+            ? '<div class="empty-state">No authorized tags</div>'
+            : authorized
+                .map(
+                  (tag) => `
+            <div class="tag-item authorized">
+              <span>${tag}</span>
+              <button class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" onclick="removeTag('${tag}')">Remove</button>
+            </div>
+          `
+                )
+                .join("");
+
+        blockedContainer.innerHTML =
+          blocked.length === 0
+            ? '<div class="empty-state">No blocked tags</div>'
+            : blocked
+                .map(
+                  (tag) => `
+            <div class="tag-item blocked">
+              <span>${tag}</span>
+              <button class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" onclick="removeTag('${tag}')">Remove</button>
+            </div>
+          `
+                )
+                .join("");
+      }
+
+      async function addTag() {
+        const tagInput = document.getElementById("newTagInput");
+        const idTag = tagInput.value.trim();
+
+        if (!idTag) {
+          alert("Please enter a tag ID");
+          return;
+        }
+
+        try {
+          const response = await fetch("/api/tags/authorize", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ idTag }),
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            tagInput.value = "";
+            loadTags();
+            alert(`Tag ${idTag} has been authorized`);
+          } else {
+            alert("Error: " + data.error);
+          }
+        } catch (error) {
+          console.error("Error adding tag:", error);
+          alert("Error adding tag");
+        }
+      }
+
+      async function blockTag() {
+        const tagInput = document.getElementById("newTagInput");
+        const idTag = tagInput.value.trim();
+
+        if (!idTag) {
+          alert("Please enter a tag ID");
+          return;
+        }
+
+        try {
+          const response = await fetch("/api/tags/block", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ idTag }),
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            tagInput.value = "";
+            loadTags();
+            alert(`Tag ${idTag} has been blocked`);
+          } else {
+            alert("Error: " + data.error);
+          }
+        } catch (error) {
+          console.error("Error blocking tag:", error);
+          alert("Error blocking tag");
+        }
+      }
+
+      async function removeTag(idTag) {
+        if (!confirm(`Are you sure you want to remove tag ${idTag}?`)) {
+          return;
+        }
+
+        try {
+          const response = await fetch(`/api/tags/${idTag}`, {
+            method: "DELETE",
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            loadTags();
+          } else {
+            alert("Error: " + data.error);
+          }
+        } catch (error) {
+          console.error("Error removing tag:", error);
+          alert("Error removing tag");
+        }
+      }
+    </script>
+  </body>
+</html>

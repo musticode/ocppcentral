@@ -1,0 +1,150 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+// var app = require("../app");
+// var debug = require("debug")("ocppcentral:server");
+// var http = require("http");
+// var ocppHandler = require("../service/ocpp/ocppHandler");
+
+//import app from "../app.js";
+import app from "../app.js";
+import debug from "debug";
+import http from "http";
+import ocppHandler from "../service/ocpp/ocppHandler.js";
+import authorize from "../service/ocpp/authorize.js";
+/**
+ * Get port from environment and store in Express.
+ */
+
+const port = normalizePort(process.env.PORT || "3000");
+app.set("port", port);
+
+/**
+ * Create HTTP server.
+ */
+
+const server = http.createServer(app);
+
+/**
+ * Setup OCPP WebSocket Server
+ */
+
+server.on("upgrade", async (request, socket, head) => {
+  // Check if it's a WebSocket upgrade request
+  if (
+    request.headers.upgrade &&
+    request.headers.upgrade.toLowerCase() === "websocket"
+  ) {
+    try {
+      console.log(
+        `WebSocket upgrade request: ${request.method} ${request.url}`
+      );
+      console.log(`Headers:`, {
+        upgrade: request.headers.upgrade,
+        connection: request.headers.connection,
+        "sec-websocket-protocol": request.headers["sec-websocket-protocol"],
+      });
+
+      // Call the OCPP handler's upgrade method
+      const handleUpgrade = ocppHandler.handleUpgrade;
+      if (typeof handleUpgrade !== "function") {
+        throw new Error("handleUpgrade is not a function");
+      }
+
+      await handleUpgrade(request, socket, head);
+      console.log(`WebSocket upgrade successful for: ${request.url}`);
+    } catch (error) {
+      console.error("WebSocket upgrade error:", error);
+      console.error("Error stack:", error.stack);
+      if (!socket.destroyed) {
+        try {
+          socket.write("HTTP/1.1 500 Internal Server Error\r\n\r\n");
+        } catch (e) {
+          // Socket might already be closed
+        }
+        socket.destroy();
+      }
+    }
+  } else {
+    // Not a WebSocket upgrade, send 400 Bad Request
+    console.log(`Non-WebSocket upgrade request rejected: ${request.url}`);
+    if (!socket.destroyed) {
+      socket.write("HTTP/1.1 400 Bad Request\r\n\r\n");
+      socket.destroy();
+    }
+  }
+});
+
+/**
+ * Listen on provided port, on all network interfaces.
+ */
+
+server.listen(port);
+server.on("error", onError);
+server.on("listening", onListening);
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+
+function normalizePort(val) {
+  const port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+}
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(error) {
+  if (error.syscall !== "listen") {
+    throw error;
+  }
+
+  const bind = typeof port === "string" ? "Pipe " + port : "Port " + port;
+
+  // handle specific listen errors with friendly messages
+  switch (error.code) {
+    case "EACCES":
+      console.error(bind + " requires elevated privileges");
+      process.exit(1);
+      break;
+    case "EADDRINUSE":
+      console.error(bind + " is already in use");
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+/**
+ * Event listener for HTTP server "listening" event.
+ */
+
+function onListening() {
+  const addr = server.address();
+  const bind = typeof addr === "string" ? "pipe " + addr : "port " + addr.port;
+  debug("Listening on " + bind);
+  console.log("OCPP Central Server started");
+  console.log("HTTP Server listening on " + bind);
+  console.log(
+    "WebSocket endpoint: ws://localhost:" +
+      (typeof addr === "string" ? "3000" : addr.port) +
+      "/{chargePointId}"
+  );
+}
