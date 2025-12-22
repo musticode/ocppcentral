@@ -1,6 +1,3 @@
-import { User } from "../models/User";
-import { UserToken } from "../models/UserToken";
-
 export enum ServerAction {
   LOGIN = "LOGIN",
   LOGOUT = "LOGOUT",
@@ -20,15 +17,18 @@ export default class BackendError extends Error {
       module?: string;
       method?: string;
       action?: ServerAction;
-      user?: User | UserToken | string;
-      actionOnUser?: User;
       detailedMessages?: any;
-      chargingStationID?: string;
-      siteID?: string;
-      siteAreaID?: string;
-      companyID?: string;
     }
   ) {
     super(params.message);
+    this.name = "BackendError";
+    this.message = params.message;
+  }
+
+  toJSON() {
+    return {
+      name: this.name,
+      message: this.message,
+    };
   }
 }

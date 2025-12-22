@@ -1,7 +1,11 @@
 import ChargePoint from "../../model/ocpp/ChargePoint.js";
 
 export const createChargePoint = async (chargePointData) => {
-  if (await ChargePoint.exists({ id: chargePointData.id })) {
+  console.log(chargePointData);
+
+  if (
+    await ChargePoint.exists({ chargePointId: chargePointData.chargePointId })
+  ) {
     throw new Error("Charge point already exists");
   }
 
