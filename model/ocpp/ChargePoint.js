@@ -5,6 +5,7 @@ const chargePointSchema = new mongoose.Schema(
     chargePointId: { type: String, required: true, unique: true, index: true },
     name: { type: String },
     description: { type: String },
+    identifier: { type: String, required: true, unique: true, index: true },
     // BootNotification data
     model: { type: String }, // Charge point model
     vendorName: { type: String }, // Vendor name

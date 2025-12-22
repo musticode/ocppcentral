@@ -1,5 +1,7 @@
 import { RPCServer, createRPCError } from "ocpp-rpc";
 import authorize from "./authorize.js";
+import { v4 as uuidv4 } from "uuid";
+import ChargePoint from "../../model/ocpp/ChargePoint.js";
 
 // Store connected clients
 const connectedClients = new Map();
@@ -59,6 +61,26 @@ server.on("client", async (client) => {
     transactions: [],
   });
 
+  let chargePoint = await ChargePoint.findOne({
+    identifier: client.identity,
+  });
+
+  if (!chargePoint) {
+    // create a new charge point
+    chargePoint = await ChargePoint.create({
+      identifier: client.identity,
+      chargePointId: chargePointId,
+    });
+  } else {
+    // update the charge point
+    chargePoint.connectedAt = new Date();
+    chargePoint.lastHeartbeat = new Date();
+    chargePoint.status = "connected";
+    chargePoint.identifier = client.identity;
+    chargePoint.sessionId = uuidv4();
+    await chargePoint.save();
+  }
+
   // Handle client disconnect
   client.on("close", () => {
     console.log(`OCPP Client disconnected: ${chargePointId}`);
@@ -66,6 +88,10 @@ server.on("client", async (client) => {
       const clientData = connectedClients.get(chargePointId);
       clientData.status = "disconnected";
       clientData.disconnectedAt = new Date();
+
+      chargePoint.sessionId = null;
+      chargePoint.status = "disconnected";
+      chargePoint.save();
     }
   });
 
