@@ -11,7 +11,12 @@ export const getUserById = async (id) => {
 };
 
 export const getAllUsers = async () => {
-  return await User.find();
+  console.log("getAllUsers");
+  return await User.find().sort({ createdAt: -1 });
+};
+
+export const getUserByEmail = async (email) => {
+  return await User.findOne({ email });
 };
 
 export const updateUser = async (id, userData) => {

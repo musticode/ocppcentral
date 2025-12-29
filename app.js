@@ -13,8 +13,9 @@ import cookieParser from "cookie-parser";
 import logger from "morgan";
 import connectDB from "./configuration/db.js";
 // import indexRouter from "./routes/index.js";
-// import usersRouter from "./routes/users.js";
+import usersRouter from "./routes/users.js"; //
 import chargePointRoute from "./routes/chargePointRoute.js";
+import transactionRoute from "./routes/transaction.js";
 
 // Connect to MongoDB
 connectDB();
@@ -31,8 +32,9 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
 // app.use("/", indexRouter);
-// app.use("/users", usersRouter);
+app.use("/users", usersRouter); //
 // app.use("/api", apiRouter);
 app.use("/api/charge-points", chargePointRoute);
+app.use("/api/transactions", transactionRoute);
 
 export default app;

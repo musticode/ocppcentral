@@ -1,0 +1,273 @@
+import Consumption from "../../model/management/Consumption.js";
+import Transaction from "../../model/ocpp/Transaction.js";
+import {
+  getActivePricingForChargePoint,
+  getPricePerKwh,
+} from "./pricingService.js";
+
+/**
+ * Create consumption record from transaction
+ */
+export const createConsumptionFromTransaction = async (transactionId) => {
+  // Find the transaction
+  const transaction = await Transaction.findOne({ transactionId });
+
+  if (!transaction) {
+    throw new Error(`Transaction ${transactionId} not found`);
+  }
+
+  if (!transaction.meterStop) {
+    throw new Error(`Transaction ${transactionId} has no meterStop value`);
+  }
+
+  // Get pricing for the transaction
+  let pricing = null;
+  let pricePerKwh = null;
+  let connectionFee = 0;
+
+  try {
+    pricing = await getActivePricingForChargePoint(
+      transaction.chargePointId,
+      transaction.startedAt
+    );
+
+    if (pricing) {
+      pricePerKwh = pricing.getPriceForDateTime(transaction.startedAt);
+      connectionFee = pricing.connectionFee || 0;
+    }
+  } catch (error) {
+    console.warn(
+      `Could not get pricing for transaction ${transactionId}:`,
+      error.message
+    );
+  }
+
+  // Check if consumption already exists for this transaction
+  const existingConsumption = await Consumption.findOne({ transactionId });
+  if (existingConsumption) {
+    throw new Error(
+      `Consumption record already exists for transaction ${transactionId}`
+    );
+  }
+
+  // Calculate energy consumed (assuming meter values are in Wh)
+  const energyConsumed = (transaction.meterStop - transaction.meterStart) / 1000; // Convert to kWh
+
+  // Calculate costs
+  const energyCost = pricePerKwh ? energyConsumed * pricePerKwh : null;
+  const totalCost = energyCost
+    ? energyCost + connectionFee
+    : null;
+
+  // Calculate duration
+  const duration =
+    transaction.stoppedAt && transaction.startedAt
+      ? (transaction.stoppedAt - transaction.startedAt) / 1000
+      : null;
+
+  // Create consumption record
+  const consumptionData = {
+    transactionId: transaction.transactionId,
+    chargePointId: transaction.chargePointId,
+    connectorId: transaction.connectorId,
+    idTag: transaction.idTag,
+    meterStart: transaction.meterStart,
+    meterStop: transaction.meterStop,
+    energyConsumed,
+    pricingId: pricing?._id,
+    pricePerKwh,
+    connectionFee,
+    energyCost,
+    totalCost,
+    currency: pricing?.currency || "USD",
+    transactionStartTime: transaction.startedAt,
+    transactionStopTime: transaction.stoppedAt,
+    timestamp: transaction.stoppedAt || new Date(),
+    duration,
+  };
+
+  const consumption = new Consumption(consumptionData);
+  await consumption.save();
+
+  return consumption;
+};
+
+/**
+ * Create consumption record manually
+ */
+export const createConsumption = async (consumptionData) => {
+  // If transactionId is provided, try to get pricing from transaction
+  if (consumptionData.transactionId) {
+    const transaction = await Transaction.findOne({
+      transactionId: consumptionData.transactionId,
+    });
+
+    if (transaction) {
+      consumptionData.chargePointId =
+        consumptionData.chargePointId || transaction.chargePointId;
+      consumptionData.connectorId =
+        consumptionData.connectorId || transaction.connectorId;
+      consumptionData.idTag = consumptionData.idTag || transaction.idTag;
+      consumptionData.meterStart =
+        consumptionData.meterStart || transaction.meterStart;
+      consumptionData.transactionStartTime =
+        consumptionData.transactionStartTime || transaction.startedAt;
+
+      // Get pricing if not provided
+      if (!consumptionData.pricePerKwh && transaction.chargePointId) {
+        try {
+          const pricing = await getActivePricingForChargePoint(
+            transaction.chargePointId,
+            transaction.startedAt
+          );
+          if (pricing) {
+            consumptionData.pricingId = pricing._id;
+            consumptionData.pricePerKwh = pricing.getPriceForDateTime(
+              transaction.startedAt
+            );
+            consumptionData.connectionFee = pricing.connectionFee || 0;
+            consumptionData.currency = pricing.currency || "USD";
+          }
+        } catch (error) {
+          console.warn("Could not get pricing:", error.message);
+        }
+      }
+    }
+  }
+
+  const consumption = new Consumption(consumptionData);
+  await consumption.save();
+
+  return consumption;
+};
+
+/**
+ * Get consumption by ID
+ */
+export const getConsumptionById = async (id) => {
+  const consumption = await Consumption.findById(id).populate("pricingId");
+  
+  // Get transaction separately since transactionId is a Number, not ObjectId
+  if (consumption && consumption.transactionId) {
+    const Transaction = (await import("../../model/ocpp/Transaction.js")).default;
+    consumption.transaction = await Transaction.findOne({
+      transactionId: consumption.transactionId,
+    });
+  }
+  
+  return consumption;
+};
+
+/**
+ * Get all consumption records
+ */
+export const getAllConsumption = async (filters = {}) => {
+  const query = {};
+
+  if (filters.chargePointId) {
+    query.chargePointId = filters.chargePointId;
+  }
+
+  if (filters.idTag) {
+    query.idTag = filters.idTag;
+  }
+
+  if (filters.transactionId) {
+    query.transactionId = filters.transactionId;
+  }
+
+  if (filters.startDate || filters.endDate) {
+    query.timestamp = {};
+    if (filters.startDate) {
+      query.timestamp.$gte = new Date(filters.startDate);
+    }
+    if (filters.endDate) {
+      query.timestamp.$lte = new Date(filters.endDate);
+    }
+  }
+
+  const consumptions = await Consumption.find(query)
+    .populate("pricingId")
+    .sort({ timestamp: -1 })
+    .limit(filters.limit || 100);
+  
+  // Optionally populate transactions if needed
+  if (filters.populateTransaction) {
+    const Transaction = (await import("../../model/ocpp/Transaction.js")).default;
+    for (const consumption of consumptions) {
+      if (consumption.transactionId) {
+        consumption.transaction = await Transaction.findOne({
+          transactionId: consumption.transactionId,
+        });
+      }
+    }
+  }
+  
+  return consumptions;
+};
+
+/**
+ * Get consumption statistics
+ */
+export const getConsumptionStatistics = async (filters = {}) => {
+  const matchQuery = {};
+
+  if (filters.chargePointId) {
+    matchQuery.chargePointId = filters.chargePointId;
+  }
+
+  if (filters.idTag) {
+    matchQuery.idTag = filters.idTag;
+  }
+
+  if (filters.startDate || filters.endDate) {
+    matchQuery.timestamp = {};
+    if (filters.startDate) {
+      matchQuery.timestamp.$gte = new Date(filters.startDate);
+    }
+    if (filters.endDate) {
+      matchQuery.timestamp.$lte = new Date(filters.endDate);
+    }
+  }
+
+  const stats = await Consumption.aggregate([
+    { $match: matchQuery },
+    {
+      $group: {
+        _id: null,
+        totalEnergyConsumed: { $sum: "$energyConsumed" },
+        totalCost: { $sum: "$totalCost" },
+        totalTransactions: { $sum: 1 },
+        averageEnergyPerTransaction: { $avg: "$energyConsumed" },
+        averageCostPerTransaction: { $avg: "$totalCost" },
+        totalDuration: { $sum: "$duration" },
+      },
+    },
+  ]);
+
+  return stats[0] || {
+    totalEnergyConsumed: 0,
+    totalCost: 0,
+    totalTransactions: 0,
+    averageEnergyPerTransaction: 0,
+    averageCostPerTransaction: 0,
+    totalDuration: 0,
+  };
+};
+
+/**
+ * Update consumption record
+ */
+export const updateConsumption = async (id, consumptionData) => {
+  return await Consumption.findByIdAndUpdate(id, consumptionData, {
+    new: true,
+  });
+};
+
+/**
+ * Delete consumption record
+ */
+export const deleteConsumption = async (id) => {
+  return await Consumption.findByIdAndDelete(id);
+};
+
