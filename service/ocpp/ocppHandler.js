@@ -57,7 +57,7 @@ server.on("client", async (client) => {
     client: client,
     connectedAt: new Date(),
     lastHeartbeat: null,
-    status: "connected",
+    connectionStatus: "Connected",
     transactions: [],
   });
 
@@ -75,7 +75,7 @@ server.on("client", async (client) => {
     // update the charge point
     chargePoint.connectedAt = new Date();
     chargePoint.lastHeartbeat = new Date();
-    chargePoint.status = "connected";
+    chargePoint.connectionStatus = "Connected";
     chargePoint.identifier = client.identity;
     chargePoint.sessionId = uuidv4();
     await chargePoint.save();
@@ -86,11 +86,11 @@ server.on("client", async (client) => {
     console.log(`OCPP Client disconnected: ${chargePointId}`);
     if (connectedClients.has(chargePointId)) {
       const clientData = connectedClients.get(chargePointId);
-      clientData.status = "disconnected";
+      clientData.connectionStatus = "Disconnected";
       clientData.disconnectedAt = new Date();
 
       chargePoint.sessionId = null;
-      chargePoint.status = "disconnected";
+      chargePoint.connectionStatus = "Disconnected";
       chargePoint.save();
     }
   });
