@@ -43,6 +43,7 @@ const chargePointSchema = new mongoose.Schema(
 
 // Indexes
 chargePointSchema.index({ connectionStatus: 1, lastHeartbeat: -1 });
+chargePointSchema.index({ identifier: 1 }, { unique: true });
 
 const ChargePoint = mongoose.model("ChargePoint", chargePointSchema);
 

@@ -21,11 +21,11 @@ export const getPricingById = async (id) => {
  */
 export const getAllPricing = async (filters = {}) => {
   const query = {};
-  
+
   if (filters.isActive !== undefined) {
     query.isActive = filters.isActive;
   }
-  
+
   if (filters.chargePointId) {
     query.$or = [
       { chargePointIds: { $size: 0 } }, // Applies to all
@@ -48,10 +48,7 @@ export const getActivePricingForChargePoint = async (
     validFrom: { $lte: dateTime },
     $and: [
       {
-        $or: [
-          { validUntil: null },
-          { validUntil: { $gte: dateTime } },
-        ],
+        $or: [{ validUntil: null }, { validUntil: { $gte: dateTime } }],
       },
       {
         $or: [
@@ -71,7 +68,7 @@ export const getActivePricingForChargePoint = async (
  */
 export const getPricePerKwh = async (chargePointId, dateTime = new Date()) => {
   const pricing = await getActivePricingForChargePoint(chargePointId, dateTime);
-  
+
   if (!pricing) {
     throw new Error("No active pricing found for charge point");
   }
@@ -108,10 +105,25 @@ export const deactivatePricing = async (id) => {
  * Activate pricing plan
  */
 export const activatePricing = async (id) => {
-  return await Pricing.findByIdAndUpdate(
-    id,
-    { isActive: true },
-    { new: true }
-  );
+  return await Pricing.findByIdAndUpdate(id, { isActive: true }, { new: true });
 };
 
+/**
+ * Get active pricing for a specific user (customer)
+ */
+export const getActivePricingForUser = async (userId) => {
+  return await Pricing.findOne({
+    userId: userId,
+    isActive: true,
+    validFrom: { $lte: new Date() },
+    $or: [{ validUntil: null }, { validUntil: { $gte: new Date() } }],
+  }).sort({ createdAt: -1 });
+};
+
+/**
+ * Check if user has active pricing
+ */
+export const userHasActivePricing = async (userId) => {
+  const pricing = await getActivePricingForUser(userId);
+  return pricing !== null;
+};

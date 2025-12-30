@@ -13,6 +13,7 @@ const statusNotificationSchema = new mongoose.Schema(
         "HighTemperature",
         "InternalError",
         "LocalListConflict",
+        "NoError",
         "Other",
         "OverCurrentFailure",
         "PowerMeterFailure",

@@ -1,15 +1,11 @@
 import express from "express";
-import {
-  getAllChargePoints,
-  getChargePointById,
-  createChargePoint,
-} from "../service/management/chargePointService.js";
+import ChargePointService from "../service/management/chargePointService.js";
 
 const router = express.Router();
 
 router.get("/listAllChargePoints", async (req, res) => {
   try {
-    const chargePoints = await getAllChargePoints();
+    const chargePoints = await ChargePointService.getAllChargePoints();
     res.json({
       success: true,
       data: chargePoints,
@@ -25,7 +21,7 @@ router.get("/listAllChargePoints", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const chargePoint = await getChargePointById(id);
+    const chargePoint = await ChargePointService.getChargePointById(id);
     res.json({
       success: true,
       data: chargePoint,
@@ -40,7 +36,7 @@ router.get("/:id", async (req, res) => {
 
 router.post("/createChargePoint", async (req, res) => {
   try {
-    const chargePoint = await createChargePoint(req.body);
+    const chargePoint = await ChargePointService.createChargePoint(req.body);
 
     res.json({
       success: true,

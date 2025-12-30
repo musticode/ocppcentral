@@ -34,6 +34,7 @@ const pricingSchema = new mongoose.Schema(
     // Metadata
     createdBy: { type: String }, // User ID who created this pricing
     updatedBy: { type: String }, // User ID who last updated this pricing
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Link to user for customer-specific pricing
   },
   {
     timestamps: true,
@@ -43,6 +44,7 @@ const pricingSchema = new mongoose.Schema(
 // Indexes for efficient querying
 pricingSchema.index({ isActive: 1, validFrom: -1, validUntil: -1 });
 pricingSchema.index({ chargePointIds: 1 });
+pricingSchema.index({ userId: 1, isActive: 1 }); // For customer pricing queries
 
 // Method to get price per kWh for a given date/time
 pricingSchema.methods.getPriceForDateTime = function (dateTime) {
@@ -74,4 +76,3 @@ pricingSchema.methods.getPriceForDateTime = function (dateTime) {
 const Pricing = mongoose.model("Pricing", pricingSchema);
 
 export default Pricing;
-

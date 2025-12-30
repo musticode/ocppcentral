@@ -1,5 +1,8 @@
 import { Authorization } from "../../model/ocpp/index.js";
 import IdTag from "../../model/ocpp/IdTag.js";
+import User from "../../model/management/User.js";
+import { canUserAuthenticate } from "../management/userService.js";
+import { getActivePricingForUser } from "../management/pricingService.js";
 
 // Authorization service for OCPP idTags
 // In production, this should connect to a database or external authorization service
@@ -21,23 +24,71 @@ const blockedTags = new Set(["BLOCKED_TAG"]);
 /**
  * Authorize an OCPP idTag request
  * @param {string} idTag - The idTag to authorize
- * @returns {Object} idTagInfo object with status and optional fields
+ * @returns {Promise<Object>} idTagInfo object with status and optional fields
  */
-function authorizeOCPPRequest(idTag) {
+async function authorizeOCPPRequest(idTag) {
   if (!idTag) {
     return {
       status: "Invalid",
     };
   }
 
-  // Check if tag is blocked
+  // Check if tag is blocked (in-memory list)
   if (blockedTags.has(idTag)) {
     return {
       status: "Blocked",
     };
   }
 
-  // Check if tag is authorized
+  // Check database for idTag
+  const idTagDoc = await IdTag.findOne({ idTag: idTag }).populate("userId");
+
+  if (idTagDoc) {
+    // Check if idTag is active
+    if (!idTagDoc.isActive) {
+      return {
+        status: "Blocked",
+      };
+    }
+
+    // Check if idTag is expired
+    if (idTagDoc.expiryDate && new Date() > idTagDoc.expiryDate) {
+      return {
+        status: "Expired",
+      };
+    }
+
+    // Check idTag status
+    if (idTagDoc.status === "Blocked") {
+      return {
+        status: "Blocked",
+      };
+    }
+
+    // If idTag has a user, verify user can authenticate
+    if (idTagDoc.userId) {
+      const user = await User.findById(idTagDoc.userId);
+      if (user) {
+        const canAuth = await canUserAuthenticate(user._id);
+        if (!canAuth) {
+          return {
+            status: "Invalid",
+          };
+        }
+      }
+    }
+
+    // Valid idTag
+    return {
+      status: idTagDoc.status || "Accepted",
+      expiryDate: idTagDoc.expiryDate
+        ? idTagDoc.expiryDate.toISOString()
+        : undefined,
+      parentIdTag: idTagDoc.parentIdTag,
+    };
+  }
+
+  // Check if idTag exists in in-memory authorized list (for backward compatibility)
   if (authorizedTags.has(idTag)) {
     // Set expiry date to 1 year from now (optional)
     const expiryDate = new Date();
@@ -49,8 +100,27 @@ function authorizeOCPPRequest(idTag) {
     };
   }
 
+  // Check if idTag belongs to a customer without pricing (they can authenticate all chargepoints)
+  // Try to find user by email pattern or other identifier
+  // Note: This is a fallback - ideally idTag should be properly linked to user
+  const user = await User.findOne({
+    email: { $regex: new RegExp(idTag.split("_")[0], "i") },
+  }).populate("IdTag");
+
+  if (user && !user.companyId) {
+    // Customer (no company) - check if they have pricing
+    const userPricing = await getActivePricingForUser(user._id);
+
+    // Customer without pricing can authenticate all chargepoints
+    if (!userPricing) {
+      return {
+        status: "Accepted",
+        expiryDate: undefined, // No expiry for customers without pricing
+      };
+    }
+  }
+
   // Default: reject unknown tags
-  // In production, you might want to check with an external authorization service
   return {
     status: "Invalid",
   };
@@ -99,7 +169,7 @@ function getBlockedTags() {
 }
 
 async function saveAuthorization(chargePointId, idTag, idTagInfo, status) {
-  if (!chargePointId || !idTag || !idTagInfo || !status) {
+  if (!chargePointId || !idTag || !status) {
     return null;
   }
 
@@ -108,11 +178,17 @@ async function saveAuthorization(chargePointId, idTag, idTagInfo, status) {
   const authorization = new Authorization({
     chargePointId: chargePointId,
     idTag: idTag,
-    idTagInfo: {
-      status: idTagModel.status,
-      expiryDate: idTagModel.expiryDate,
-      parentIdTag: idTagModel.parentIdTag,
-    },
+    idTagInfo:
+      idTagInfo ||
+      (idTagModel
+        ? {
+            status: idTagModel.status,
+            expiryDate: idTagModel.expiryDate,
+            parentIdTag: idTagModel.parentIdTag,
+          }
+        : {
+            status: status,
+          }),
     timestamp: new Date(),
     createdAt: new Date(),
   });

@@ -2,6 +2,10 @@ import { RPCServer, createRPCError } from "ocpp-rpc";
 import authorize from "./authorize.js";
 import { v4 as uuidv4 } from "uuid";
 import ChargePoint from "../../model/ocpp/ChargePoint.js";
+import Heartbeat from "../../model/ocpp/Heartbeat.js";
+import transactionService from "../management/transactionService.js";
+import chargePointService from "../management/chargePointService.js";
+import statusNotificationService from "./statusNotificationService.js";
 
 // Store connected clients
 const connectedClients = new Map();
@@ -111,13 +115,25 @@ server.on("client", async (client) => {
     };
   });
 
-  client.handle("Heartbeat", ({ params }) => {
+  client.handle("Heartbeat", async ({ params }) => {
+    console.log("Heartbeat params:", client);
+
     console.log(`Server got Heartbeat from ${client.identity}:`, params);
 
     // Update last heartbeat time
     if (connectedClients.has(chargePointId)) {
       connectedClients.get(chargePointId).lastHeartbeat = new Date();
     }
+
+    const heartBeat = new Heartbeat({
+      chargePointId: params.chargePointId,
+      currentTime: new Date().toISOString(),
+      createdAt: new Date(),
+      timestamp: new Date(),
+    });
+
+    //await heartBeat.save(heartBeat);
+    console.log(`Heartbeat saved: ${heartBeat}`);
 
     return {
       currentTime: new Date().toISOString(),
@@ -132,53 +148,78 @@ server.on("client", async (client) => {
     };
   });
 
-  client.handle("StartTransaction", ({ params }) => {
+  client.handle("StartTransaction", async ({ params }) => {
     console.log(`Server got StartTransaction from ${client.identity}:`, params);
     // params: connectorId, idTag, meterStart, reservationId, timestamp
 
-    // Generate a transaction ID (in production, this should be stored in database)
-    const transactionId = Math.floor(Math.random() * 1000000);
+    const chargePoint = await ChargePoint.findOne({
+      chargePointId: client.identity,
+    });
 
-    // Store transaction
-    if (connectedClients.has(chargePointId)) {
-      const clientData = connectedClients.get(chargePointId);
-      clientData.transactions.push({
-        transactionId: transactionId,
-        connectorId: params.connectorId,
-        idTag: params.idTag,
-        meterStart: params.meterStart,
-        timestamp: params.timestamp,
-        startedAt: new Date(),
-      });
+    if (!chargePoint) {
+      throw new Error(`Charge point ${chargePointId} not found`);
     }
 
-    return {
-      transactionId: transactionId,
-      idTagInfo: {
-        status: "Accepted", // Can be: Accepted, Blocked, Expired, Invalid, ConcurrentTx
-        expiryDate: null, // Optional: ISO 8601 date when idTag expires
-        parentIdTag: null, // Optional: parent idTag if this is a child tag
-      },
+    const transactionData = {
+      chargePointId: chargePoint._id,
+      connectorId: params.connectorId,
+      idTag: params.idTag,
+      meterStart: params.meterStart,
+      timestamp: params.timestamp,
+      startedAt: new Date(),
     };
+
+    try {
+      const transaction = await transactionService.createTransaction(
+        transactionData
+      );
+
+      console.log(`Transaction created: ${transaction}`);
+
+      return {
+        transactionId: transaction.transactionId,
+        idTagInfo: {
+          status: "Accepted", // Can be: Accepted, Blocked, Expired, Invalid, ConcurrentTx
+          expiryDate: null, // Optional: ISO 8601 date when idTag expires
+          parentIdTag: null, // Optional: parent idTag if this is a child tag
+        },
+      };
+    } catch (error) {
+      console.error(`Error creating transaction: ${error}`);
+      return {
+        status: "Rejected",
+        errorCode: "500",
+        errorDescription: `Error creating transaction: ${error.message}`,
+      };
+    }
   });
 
-  client.handle("StopTransaction", ({ params }) => {
+  client.handle("StopTransaction", async ({ params }) => {
     console.log(`Server got StopTransaction from ${client.identity}:`, params);
 
-    // Mark transaction as stopped
-    if (connectedClients.has(chargePointId)) {
-      const clientData = connectedClients.get(chargePointId);
-      const transaction = clientData.transactions.find(
-        (t) => t.transactionId === params.transactionId
-      );
-      if (transaction) {
-        transaction.stoppedAt = new Date();
-        transaction.meterStop = params.meterStop;
-        transaction.reason = params.reason;
-      }
+    const chargePoint = await ChargePoint.findOne({
+      chargePointId: client.identity,
+    });
+
+    if (!chargePoint) {
+      throw new Error(`Charge point ${chargePointId} not found`);
     }
 
+    const transaction = await transactionService.getTransactionById(
+      params.transactionId
+    );
+
+    if (!transaction) {
+      throw new Error(`Transaction ${params.transactionId} not found`);
+    }
+
+    transaction.stoppedAt = new Date();
+    transaction.meterStop = params.meterStop;
+    transaction.stopReason = params.reason;
+    await transaction.save();
+
     return {
+      transactionId: transaction.transactionId,
       idTagInfo: {
         status: "Accepted",
       },
@@ -186,11 +227,21 @@ server.on("client", async (client) => {
   });
 
   // Authorize - Verifies if an idTag is authorized to start a transaction
-  client.handle("Authorize", ({ params }) => {
+  client.handle("Authorize", async ({ params }) => {
     console.log(`Server got Authorize from ${client.identity}:`, params);
 
     // Use authorize service to check idTag
-    const idTagInfo = authorize.authorizeOCPPRequest(params.idTag);
+    const idTagInfo = await authorize.authorizeOCPPRequest(params.idTag);
+
+    // Save authorization record
+    if (params.idTag && idTagInfo) {
+      await authorize.saveAuthorization(
+        client.identity,
+        params.idTag,
+        idTagInfo,
+        idTagInfo.status
+      );
+    }
 
     return {
       idTagInfo: idTagInfo,
@@ -198,15 +249,79 @@ server.on("client", async (client) => {
   });
 
   // StatusNotification - Informs about the status of a connector
-  client.handle("StatusNotification", ({ params }) => {
+  client.handle("StatusNotification", async ({ params }) => {
     console.log(
       `Server got StatusNotification from ${client.identity}:`,
       params
     );
-    // params: connectorId, errorCode, status, info, timestamp, vendorId, vendorErrorCode
+    console.log(`StatusNotification params: ${JSON.stringify(params)}`);
 
-    // No response data required, but we return empty object to acknowledge
-    return {};
+    try {
+      const chargePointIdentifier = client.identity;
+      const {
+        connectorId,
+        status,
+        errorCode,
+        info,
+        vendorId,
+        vendorErrorCode,
+        timestamp,
+      } = params;
+
+      // Validate required parameters
+      if (connectorId === undefined || !status) {
+        throw new Error("Missing required parameters: connectorId and status");
+      }
+
+      // Get or verify charge point exists
+      const chargePoint = await chargePointService.getChargePointByIdentifier(
+        chargePointIdentifier
+      );
+
+      if (!chargePoint) {
+        throw new Error(`Charge point ${chargePointIdentifier} not found`);
+      }
+
+      // Prepare additional data for connector and status notification
+      // Filter out empty strings to avoid validation issues
+      const additionalData = {};
+      if (errorCode && errorCode.trim() !== "")
+        additionalData.errorCode = errorCode;
+      if (info && info.trim() !== "") additionalData.info = info;
+      if (vendorId && vendorId.trim() !== "")
+        additionalData.vendorId = vendorId;
+      if (vendorErrorCode && vendorErrorCode.trim() !== "")
+        additionalData.vendorErrorCode = vendorErrorCode;
+      if (timestamp) additionalData.timestamp = new Date(timestamp);
+
+      // Create or update connector status
+      const connector = await chargePointService.createOrUpdateConnectorStatus(
+        chargePointIdentifier,
+        connectorId,
+        status,
+        additionalData
+      );
+
+      console.log(
+        `Connector ${connectorId} status updated to ${status} for charge point ${chargePointIdentifier}`
+      );
+
+      // Save StatusNotification record for history
+      const statusNotification =
+        await statusNotificationService.saveStatusNotification(
+          chargePointIdentifier,
+          connectorId,
+          status,
+          additionalData
+        );
+
+      console.log(`StatusNotification saved: ${statusNotification._id}`);
+
+      return {};
+    } catch (error) {
+      console.error(`Error handling StatusNotification: ${error.message}`);
+      throw error;
+    }
   });
 
   // DataTransfer - Vendor-specific data transfer

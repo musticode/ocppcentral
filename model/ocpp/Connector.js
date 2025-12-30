@@ -41,6 +41,7 @@ const connectorSchema = new mongoose.Schema(
         "UnderVoltage",
         "OverVoltage",
         "WeakSignal",
+        "NoError",
       ],
     },
     info: { type: String }, // Additional free format info

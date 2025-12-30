@@ -9,6 +9,7 @@ const companySchema = new mongoose.Schema({
   website: { type: String, required: true },
   logo: { type: String, required: true },
   description: { type: String, required: true },
+  paymentNeeded: { type: Boolean, default: true }, // If false, company users get idTag automatically
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
