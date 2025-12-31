@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const transactionSchema = new mongoose.Schema(
   {
-    transactionId: { type: Number, required: true, unique: true, index: true },
+    transactionId: { type: Number, required: false, unique: true, index: true },
     chargePointId: { type: String, required: true, index: true },
     connectorId: { type: Number, required: true, index: true },
     idTag: { type: String, required: true, index: true },

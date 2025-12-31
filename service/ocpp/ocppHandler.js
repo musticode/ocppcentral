@@ -6,6 +6,7 @@ import Heartbeat from "../../model/ocpp/Heartbeat.js";
 import transactionService from "../management/transactionService.js";
 import chargePointService from "../management/chargePointService.js";
 import statusNotificationService from "./statusNotificationService.js";
+import { createMeterValueFromOCPP } from "./meterValueService.js";
 
 // Store connected clients
 const connectedClients = new Map();
@@ -140,90 +141,305 @@ server.on("client", async (client) => {
     };
   });
 
-  client.handle("MeterValues", ({ params }) => {
+  client.handle("MeterValues", async ({ params }) => {
     console.log(`Server got MeterValues from ${client.identity}:`, params);
+    // OCPP MeterValues params structure:
+    // - connectorId (required)
+    // - transactionId (optional, only present if transaction is active)
+    // - meterValue (array of {timestamp, sampledValue[]})
 
-    return {
-      status: "Accepted",
-    };
+    try {
+      const chargePointIdentifier = client.identity;
+
+      // Validate required parameters
+      if (
+        params.connectorId === undefined ||
+        !params.meterValue ||
+        !Array.isArray(params.meterValue)
+      ) {
+        console.error(
+          "Missing required parameters: connectorId or meterValue array"
+        );
+        return {};
+      }
+
+      // Verify charge point exists
+      const chargePoint = await chargePointService.getChargePointByIdentifier(
+        chargePointIdentifier
+      );
+
+      if (!chargePoint) {
+        console.error(`Charge point ${chargePointIdentifier} not found`);
+        return {};
+      }
+
+      // If transactionId is provided, verify transaction exists
+      if (params.transactionId) {
+        const transaction =
+          await transactionService.getTransactionByTransactionId(
+            params.transactionId
+          );
+
+        if (transaction) {
+          console.log(
+            `MeterValues received for active transaction ${params.transactionId}`
+          );
+        } else {
+          console.warn(
+            `MeterValues received for non-existent transaction ${params.transactionId}`
+          );
+        }
+      }
+
+      // Process each meter value entry in the array
+      // Each meterValue entry creates one MeterValue document in the database
+      const savedMeterValues = [];
+
+      for (const meterValueEntry of params.meterValue) {
+        try {
+          // Each meterValue entry has: timestamp and sampledValue array
+          if (!meterValueEntry.timestamp) {
+            console.warn(
+              "MeterValue entry missing timestamp, skipping",
+              meterValueEntry
+            );
+            continue;
+          }
+
+          // Prepare meter value data according to OCPP format
+          // createMeterValueFromOCPP expects meterValue array where each entry has sampledValue
+          // We pass a single entry wrapped in an array
+          const meterValueParams = {
+            connectorId: params.connectorId,
+            transactionId: params.transactionId || null,
+            timestamp: meterValueEntry.timestamp,
+            meterValue: [
+              {
+                sampledValue: meterValueEntry.sampledValue || [],
+              },
+            ],
+          };
+
+          // Save meter value to database
+          // The service will extract all sampledValues from the meterValue array
+          const savedMeterValue = await createMeterValueFromOCPP(
+            chargePointIdentifier,
+            meterValueParams
+          );
+
+          savedMeterValues.push(savedMeterValue);
+
+          const sampledValueCount = (meterValueEntry.sampledValue || []).length;
+          console.log(
+            `MeterValue saved: ID=${
+              savedMeterValue._id
+            }, chargePoint=${chargePointIdentifier}, connector=${
+              params.connectorId
+            }, transaction=${params.transactionId || "N/A"}, timestamp=${
+              meterValueEntry.timestamp
+            }, sampledValues=${sampledValueCount}`
+          );
+        } catch (error) {
+          console.error(
+            `Error saving meter value entry: ${error.message}`,
+            error
+          );
+          // Continue processing other meter values even if one fails
+        }
+      }
+
+      console.log(
+        `Successfully saved ${savedMeterValues.length} of ${params.meterValue.length} meter value entries`
+      );
+
+      // OCPP MeterValues doesn't require a response (empty object is acceptable)
+      return {};
+    } catch (error) {
+      console.error(`Error handling MeterValues: ${error.message}`, error);
+      // OCPP MeterValues doesn't require a response, but we return empty object
+      return {};
+    }
   });
 
   client.handle("StartTransaction", async ({ params }) => {
     console.log(`Server got StartTransaction from ${client.identity}:`, params);
     // params: connectorId, idTag, meterStart, reservationId, timestamp
 
-    const chargePoint = await ChargePoint.findOne({
-      chargePointId: client.identity,
-    });
-
-    if (!chargePoint) {
-      throw new Error(`Charge point ${chargePointId} not found`);
-    }
-
-    const transactionData = {
-      chargePointId: chargePoint._id,
-      connectorId: params.connectorId,
-      idTag: params.idTag,
-      meterStart: params.meterStart,
-      timestamp: params.timestamp,
-      startedAt: new Date(),
-    };
-
     try {
+      const chargePointIdentifier = client.identity;
+
+      // Validate required parameters
+      if (
+        params.connectorId === undefined ||
+        !params.idTag ||
+        params.meterStart === undefined
+      ) {
+        throw new Error(
+          "Missing required parameters: connectorId, idTag, or meterStart"
+        );
+      }
+
+      // Get charge point
+      const chargePoint = await chargePointService.getChargePointByIdentifier(
+        chargePointIdentifier
+      );
+
+      if (!chargePoint) {
+        throw new Error(`Charge point ${chargePointIdentifier} not found`);
+      }
+
+      // Prepare transaction data
+      // transactionId will be auto-generated by createTransaction if not provided
+      const transactionData = {
+        chargePointId: chargePointIdentifier, // Use identifier string for consistency
+        connectorId: params.connectorId,
+        idTag: params.idTag,
+        meterStart: params.meterStart,
+        timestamp: params.timestamp ? new Date(params.timestamp) : new Date(),
+        startedAt: new Date(),
+        status: "Active", // Explicitly set status
+      };
+
+      // Add reservationId if provided
+      if (params.reservationId !== undefined) {
+        transactionData.reservationId = params.reservationId;
+      }
+
+      console.log(
+        `Creating transaction with data: ${JSON.stringify(transactionData)}`
+      );
+
+      // Create transaction (transactionId will be auto-generated)
       const transaction = await transactionService.createTransaction(
         transactionData
       );
 
-      console.log(`Transaction created: ${transaction}`);
+      console.log(
+        `Transaction created with ID: ${transaction.transactionId}, MongoDB _id: ${transaction._id}`
+      );
+
+      // Authorize idTag
+      let idTagInfo = {
+        status: "Accepted",
+      };
+
+      try {
+        const authResult = await authorize.authorizeOCPPRequest(params.idTag);
+        idTagInfo = authResult;
+      } catch (error) {
+        console.error(
+          `Error authorizing idTag ${params.idTag}: ${error.message}`
+        );
+        // Default to Accepted if authorization fails
+        idTagInfo = { status: "Accepted" };
+      }
 
       return {
         transactionId: transaction.transactionId,
-        idTagInfo: {
-          status: "Accepted", // Can be: Accepted, Blocked, Expired, Invalid, ConcurrentTx
-          expiryDate: null, // Optional: ISO 8601 date when idTag expires
-          parentIdTag: null, // Optional: parent idTag if this is a child tag
-        },
+        idTagInfo: idTagInfo,
       };
     } catch (error) {
-      console.error(`Error creating transaction: ${error}`);
-      return {
-        status: "Rejected",
-        errorCode: "500",
-        errorDescription: `Error creating transaction: ${error.message}`,
-      };
+      console.error(`Error handling StartTransaction: ${error.message}`);
+      throw error;
     }
   });
 
   client.handle("StopTransaction", async ({ params }) => {
     console.log(`Server got StopTransaction from ${client.identity}:`, params);
+    // params: transactionId, idTag, meterStop, timestamp, reason
 
-    const chargePoint = await ChargePoint.findOne({
-      chargePointId: client.identity,
-    });
+    try {
+      const chargePointIdentifier = client.identity;
+      const { transactionId, idTag, meterStop, timestamp, reason } = params;
 
-    if (!chargePoint) {
-      throw new Error(`Charge point ${chargePointId} not found`);
-    }
+      // Validate required parameters
+      if (transactionId === undefined) {
+        throw new Error("Missing required parameter: transactionId");
+      }
 
-    const transaction = await transactionService.getTransactionById(
-      params.transactionId
-    );
+      // Verify charge point exists
+      const chargePoint = await chargePointService.getChargePointByIdentifier(
+        chargePointIdentifier
+      );
 
-    if (!transaction) {
-      throw new Error(`Transaction ${params.transactionId} not found`);
-    }
+      if (!chargePoint) {
+        throw new Error(`Charge point ${chargePointIdentifier} not found`);
+      }
 
-    transaction.stoppedAt = new Date();
-    transaction.meterStop = params.meterStop;
-    transaction.stopReason = params.reason;
-    await transaction.save();
+      // Get transaction by OCPP transactionId (not MongoDB _id)
+      const transaction =
+        await transactionService.getTransactionByTransactionId(transactionId);
 
-    return {
-      transactionId: transaction.transactionId,
-      idTagInfo: {
+      if (!transaction) {
+        throw new Error(`Transaction ${transactionId} not found`);
+      }
+
+      // Verify transaction belongs to this charge point
+      // Handle both cases: chargePointId as identifier string or MongoDB _id string
+      const transactionChargePointId = transaction.chargePointId?.toString();
+      const chargePointIdString = chargePoint._id?.toString();
+
+      if (
+        transactionChargePointId !== chargePointIdentifier &&
+        transactionChargePointId !== chargePointIdString
+      ) {
+        console.warn(
+          `Transaction ${transactionId} chargePointId mismatch. Transaction: ${transactionChargePointId}, ChargePoint: ${chargePointIdentifier} or ${chargePointIdString}`
+        );
+        // Don't throw error, just log warning - might be due to data inconsistency
+      }
+
+      // Prepare stop data
+      const stopData = {
+        meterStop: meterStop,
+        timestamp: timestamp,
+        reason: reason,
+        idTag: idTag,
+      };
+
+      // Stop the transaction and update in database
+      const updatedTransaction = await transactionService.stopTransaction(
+        transactionId,
+        stopData
+      );
+
+      console.log(
+        `Transaction ${transactionId} stopped successfully. Status: ${updatedTransaction.status}, MeterStop: ${updatedTransaction.meterStop}, StopReason: ${updatedTransaction.stopReason}`
+      );
+      console.log(
+        `Updated transaction in database: ${JSON.stringify({
+          transactionId: updatedTransaction.transactionId,
+          status: updatedTransaction.status,
+          stoppedAt: updatedTransaction.stoppedAt,
+          meterStop: updatedTransaction.meterStop,
+          stopReason: updatedTransaction.stopReason,
+        })}`
+      );
+
+      // Authorize idTag if provided (OCPP 1.6 requires idTagInfo in response)
+      let idTagInfo = {
         status: "Accepted",
-      },
-    };
+      };
+
+      if (idTag) {
+        try {
+          const authResult = await authorize.authorizeOCPPRequest(idTag);
+          idTagInfo = authResult;
+        } catch (error) {
+          console.error(`Error authorizing idTag ${idTag}: ${error.message}`);
+          // Default to Accepted if authorization fails
+          idTagInfo = { status: "Accepted" };
+        }
+      }
+
+      // Return valid OCPP StopTransaction response
+      return {
+        idTagInfo: idTagInfo,
+      };
+    } catch (error) {
+      console.error(`Error handling StopTransaction: ${error.message}`);
+      throw error;
+    }
   });
 
   // Authorize - Verifies if an idTag is authorized to start a transaction

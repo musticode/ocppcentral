@@ -19,6 +19,7 @@ const connectorSchema = new mongoose.Schema(
         "Charging",
         "SuspendedEVSE",
         "SuspendedEV",
+        "Finishing",
       ],
       default: "Unavailable",
       index: true,

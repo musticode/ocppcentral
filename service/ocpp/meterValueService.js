@@ -14,20 +14,36 @@ export const createMeterValue = async (meterValueData) => {
  * Create meter value from OCPP MeterValues message
  */
 export const createMeterValueFromOCPP = async (chargePointId, params) => {
+  // OCPP MeterValues structure:
+  // params.meterValue is an array where each entry has {timestamp, sampledValue[]}
+  // We process each entry to extract all sampledValues
+  const sampledValues = [];
+
+  if (params.meterValue && Array.isArray(params.meterValue)) {
+    for (const mv of params.meterValue) {
+      if (mv.sampledValue && Array.isArray(mv.sampledValue)) {
+        // Extract all sampledValues from this meterValue entry
+        for (const sv of mv.sampledValue) {
+          sampledValues.push({
+            value: sv.value || "",
+            context: sv.context || "Sample.Periodic",
+            format: sv.format || "Raw",
+            measurand: sv.measurand,
+            location: sv.location,
+            unit: sv.unit,
+            phase: sv.phase,
+          });
+        }
+      }
+    }
+  }
+
   const meterValueData = {
     chargePointId,
     connectorId: params.connectorId,
     transactionId: params.transactionId || null,
     timestamp: new Date(params.timestamp),
-    sampledValue: params.meterValue?.map((mv) => ({
-      value: mv.sampledValue?.[0]?.value || "",
-      context: mv.sampledValue?.[0]?.context || "Sample.Periodic",
-      format: mv.sampledValue?.[0]?.format || "Raw",
-      measurand: mv.sampledValue?.[0]?.measurand,
-      location: mv.sampledValue?.[0]?.location,
-      unit: mv.sampledValue?.[0]?.unit,
-      phase: mv.sampledValue?.[0]?.phase,
-    })) || [],
+    sampledValue: sampledValues,
   };
 
   const meterValue = new MeterValue(meterValueData);
@@ -176,7 +192,11 @@ export const getEnergyFromMeterValues = async (transactionId) => {
 /**
  * Get power statistics from meter values
  */
-export const getPowerStatistics = async (chargePointId, connectorId, filters = {}) => {
+export const getPowerStatistics = async (
+  chargePointId,
+  connectorId,
+  filters = {}
+) => {
   const query = {
     chargePointId,
     connectorId,
@@ -249,4 +269,3 @@ export const deleteMeterValues = async (filters = {}) => {
 
   return await MeterValue.deleteMany(query);
 };
-
