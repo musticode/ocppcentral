@@ -16,7 +16,7 @@ import connectDB from "./configuration/db.js";
 import usersRouter from "./routes/users.js"; //
 import chargePointRoute from "./routes/chargePointRoute.js";
 import transactionRoute from "./routes/transaction.js";
-
+import companyRoute from "./routes/company.js";
 // Connect to MongoDB
 connectDB();
 
@@ -36,5 +36,5 @@ app.use("/users", usersRouter); //
 // app.use("/api", apiRouter);
 app.use("/api/charge-points", chargePointRoute);
 app.use("/api/transactions", transactionRoute);
-
+app.use("/api/companies", companyRoute);
 export default app;

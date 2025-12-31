@@ -1,7 +1,7 @@
 import ChargePoint from "../../model/ocpp/ChargePoint.js";
 import Connector from "../../model/ocpp/Connector.js";
 
-class ChargePointService {
+export class ChargePointService {
   constructor() {
     this.chargePoint = ChargePoint;
     this.connector = Connector;
