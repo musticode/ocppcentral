@@ -19,6 +19,12 @@ const consumptionSchema = new mongoose.Schema(
       ref: "Pricing",
       index: true,
     },
+    // Tariff information (takes priority over pricing)
+    tariffId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tariff",
+      index: true,
+    },
     pricePerKwh: { type: Number }, // Price per kWh at time of consumption
     connectionFee: { type: Number, default: 0 },
     // Cost calculation
@@ -44,6 +50,7 @@ consumptionSchema.index({ chargePointId: 1, timestamp: -1 });
 consumptionSchema.index({ idTag: 1, timestamp: -1 });
 consumptionSchema.index({ transactionId: 1 });
 consumptionSchema.index({ pricingId: 1 });
+consumptionSchema.index({ tariffId: 1 });
 
 // Pre-save hook to calculate energy consumed and costs
 consumptionSchema.pre("save", function (next) {

@@ -4,6 +4,7 @@ import {
   getActivePricingForChargePoint,
   getPricePerKwh,
 } from "./pricingService.js";
+import tariffService from "./tariffService.js";
 
 /**
  * Create consumption record from transaction
@@ -21,23 +22,48 @@ export const createConsumptionFromTransaction = async (transactionId) => {
   }
 
   // Get pricing for the transaction
+  // Priority: 1. Tariff (connector-specific), 2. Pricing (charge point level)
   let pricing = null;
+  let tariff = null;
   let pricePerKwh = null;
   let connectionFee = 0;
+  let currency = "USD";
 
   try {
-    pricing = await getActivePricingForChargePoint(
+    // First, check for tariff (connector-specific)
+    const priceInfo = await tariffService.getPriceForConnector(
       transaction.chargePointId,
+      transaction.connectorId,
       transaction.startedAt
     );
 
-    if (pricing) {
-      pricePerKwh = pricing.getPriceForDateTime(transaction.startedAt);
-      connectionFee = pricing.connectionFee || 0;
+    if (priceInfo && priceInfo.tariff) {
+      tariff = priceInfo.tariff;
+      pricePerKwh = priceInfo.pricePerKwh;
+      connectionFee = priceInfo.connectionFee || 0;
+      currency = priceInfo.currency || "USD";
+      console.log(
+        `Using tariff for transaction ${transactionId}: ${tariff.name}`
+      );
+    } else {
+      // Fall back to pricing (charge point level)
+      pricing = await getActivePricingForChargePoint(
+        transaction.chargePointId,
+        transaction.startedAt
+      );
+
+      if (pricing) {
+        pricePerKwh = pricing.getPriceForDateTime(transaction.startedAt);
+        connectionFee = pricing.connectionFee || 0;
+        currency = pricing.currency || "USD";
+        console.log(
+          `Using pricing for transaction ${transactionId}: ${pricing.name}`
+        );
+      }
     }
   } catch (error) {
     console.warn(
-      `Could not get pricing for transaction ${transactionId}:`,
+      `Could not get pricing/tariff for transaction ${transactionId}:`,
       error.message
     );
   }
@@ -51,13 +77,12 @@ export const createConsumptionFromTransaction = async (transactionId) => {
   }
 
   // Calculate energy consumed (assuming meter values are in Wh)
-  const energyConsumed = (transaction.meterStop - transaction.meterStart) / 1000; // Convert to kWh
+  const energyConsumed =
+    (transaction.meterStop - transaction.meterStart) / 1000; // Convert to kWh
 
   // Calculate costs
   const energyCost = pricePerKwh ? energyConsumed * pricePerKwh : null;
-  const totalCost = energyCost
-    ? energyCost + connectionFee
-    : null;
+  const totalCost = energyCost ? energyCost + connectionFee : null;
 
   // Calculate duration
   const duration =
@@ -74,12 +99,13 @@ export const createConsumptionFromTransaction = async (transactionId) => {
     meterStart: transaction.meterStart,
     meterStop: transaction.meterStop,
     energyConsumed,
-    pricingId: pricing?._id,
+    pricingId: pricing?._id, // Keep pricingId for backward compatibility
+    tariffId: tariff?._id, // Store tariff ID if tariff was used
     pricePerKwh,
     connectionFee,
     energyCost,
     totalCost,
-    currency: pricing?.currency || "USD",
+    currency,
     transactionStartTime: transaction.startedAt,
     transactionStopTime: transaction.stoppedAt,
     timestamp: transaction.stoppedAt || new Date(),
@@ -113,23 +139,38 @@ export const createConsumption = async (consumptionData) => {
       consumptionData.transactionStartTime =
         consumptionData.transactionStartTime || transaction.startedAt;
 
-      // Get pricing if not provided
+      // Get pricing/tariff if not provided
       if (!consumptionData.pricePerKwh && transaction.chargePointId) {
         try {
-          const pricing = await getActivePricingForChargePoint(
+          // First, check for tariff (connector-specific)
+          const priceInfo = await tariffService.getPriceForConnector(
             transaction.chargePointId,
-            transaction.startedAt
+            transaction.connectorId,
+            transaction.startedAt || new Date()
           );
-          if (pricing) {
-            consumptionData.pricingId = pricing._id;
-            consumptionData.pricePerKwh = pricing.getPriceForDateTime(
-              transaction.startedAt
+
+          if (priceInfo && priceInfo.tariff) {
+            consumptionData.tariffId = priceInfo.tariff._id;
+            consumptionData.pricePerKwh = priceInfo.pricePerKwh;
+            consumptionData.connectionFee = priceInfo.connectionFee || 0;
+            consumptionData.currency = priceInfo.currency || "USD";
+          } else {
+            // Fall back to pricing (charge point level)
+            const pricing = await getActivePricingForChargePoint(
+              transaction.chargePointId,
+              transaction.startedAt || new Date()
             );
-            consumptionData.connectionFee = pricing.connectionFee || 0;
-            consumptionData.currency = pricing.currency || "USD";
+            if (pricing) {
+              consumptionData.pricingId = pricing._id;
+              consumptionData.pricePerKwh = pricing.getPriceForDateTime(
+                transaction.startedAt || new Date()
+              );
+              consumptionData.connectionFee = pricing.connectionFee || 0;
+              consumptionData.currency = pricing.currency || "USD";
+            }
           }
         } catch (error) {
-          console.warn("Could not get pricing:", error.message);
+          console.warn("Could not get pricing/tariff:", error.message);
         }
       }
     }
@@ -146,15 +187,16 @@ export const createConsumption = async (consumptionData) => {
  */
 export const getConsumptionById = async (id) => {
   const consumption = await Consumption.findById(id).populate("pricingId");
-  
+
   // Get transaction separately since transactionId is a Number, not ObjectId
   if (consumption && consumption.transactionId) {
-    const Transaction = (await import("../../model/ocpp/Transaction.js")).default;
+    const Transaction = (await import("../../model/ocpp/Transaction.js"))
+      .default;
     consumption.transaction = await Transaction.findOne({
       transactionId: consumption.transactionId,
     });
   }
-  
+
   return consumption;
 };
 
@@ -190,10 +232,11 @@ export const getAllConsumption = async (filters = {}) => {
     .populate("pricingId")
     .sort({ timestamp: -1 })
     .limit(filters.limit || 100);
-  
+
   // Optionally populate transactions if needed
   if (filters.populateTransaction) {
-    const Transaction = (await import("../../model/ocpp/Transaction.js")).default;
+    const Transaction = (await import("../../model/ocpp/Transaction.js"))
+      .default;
     for (const consumption of consumptions) {
       if (consumption.transactionId) {
         consumption.transaction = await Transaction.findOne({
@@ -202,7 +245,7 @@ export const getAllConsumption = async (filters = {}) => {
       }
     }
   }
-  
+
   return consumptions;
 };
 
@@ -245,14 +288,16 @@ export const getConsumptionStatistics = async (filters = {}) => {
     },
   ]);
 
-  return stats[0] || {
-    totalEnergyConsumed: 0,
-    totalCost: 0,
-    totalTransactions: 0,
-    averageEnergyPerTransaction: 0,
-    averageCostPerTransaction: 0,
-    totalDuration: 0,
-  };
+  return (
+    stats[0] || {
+      totalEnergyConsumed: 0,
+      totalCost: 0,
+      totalTransactions: 0,
+      averageEnergyPerTransaction: 0,
+      averageCostPerTransaction: 0,
+      totalDuration: 0,
+    }
+  );
 };
 
 /**
@@ -270,4 +315,3 @@ export const updateConsumption = async (id, consumptionData) => {
 export const deleteConsumption = async (id) => {
   return await Consumption.findByIdAndDelete(id);
 };
-
