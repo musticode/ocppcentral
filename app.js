@@ -18,6 +18,7 @@ import chargePointRoute from "./routes/chargePointRoute.js";
 import transactionRoute from "./routes/transaction.js";
 import companyRoute from "./routes/company.js";
 import tariffRoute from "./routes/tariff.js";
+import consumptionRoute from "./routes/consumption.js";
 // Connect to MongoDB
 connectDB();
 
@@ -39,4 +40,5 @@ app.use("/api/charge-points", chargePointRoute);
 app.use("/api/transactions", transactionRoute);
 app.use("/api/companies", companyRoute);
 app.use("/api/tariff", tariffRoute);
+app.use("/api/consumption", consumptionRoute);
 export default app;

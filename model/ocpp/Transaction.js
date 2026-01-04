@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import MeterValue from "./MeterValue.js";
 
 const transactionSchema = new mongoose.Schema(
   {
@@ -12,6 +13,8 @@ const transactionSchema = new mongoose.Schema(
     startedAt: { type: Date, default: Date.now }, // Server timestamp when transaction started
     stoppedAt: { type: Date }, // Server timestamp when transaction stopped
     meterStop: { type: Number }, // Meter value at end of transaction
+    energyConsumed: { type: Number }, // Energy consumed in kWh
+    meterValues: { type: [MeterValue.schema], required: false, default: [] },
     stopReason: {
       type: String,
       enum: [
