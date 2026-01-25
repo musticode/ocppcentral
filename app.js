@@ -19,6 +19,7 @@ import transactionRoute from "./routes/transaction.js";
 import companyRoute from "./routes/company.js";
 import tariffRoute from "./routes/tariff.js";
 import consumptionRoute from "./routes/consumption.js";
+import authRouter from "./routes/auth.js";
 // Connect to MongoDB
 connectDB();
 
@@ -36,6 +37,7 @@ app.use(express.static(path.join(__dirname, "public")));
 // app.use("/", indexRouter);
 app.use("/users", usersRouter); //
 // app.use("/api", apiRouter);
+app.use("/api/auth", authRouter);
 app.use("/api/charge-points", chargePointRoute);
 app.use("/api/transactions", transactionRoute);
 app.use("/api/companies", companyRoute);
