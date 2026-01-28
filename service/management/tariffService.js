@@ -27,6 +27,29 @@ class TariffService {
     return tariff;
   }
 
+  async updateConnectorTariff(chargePointId, connectorId, tariffData) {
+    const tariff = await this.tariff
+      .findOne({
+        chargePointId: chargePointId,
+        connectorId: connectorId,
+        isActive: true,
+      })
+      .sort({ validFrom: -1, createdAt: -1 });
+    if (!tariff) {
+      throw new Error("No active tariff found for this connector");
+    }
+    const updatedTariff = await this.tariff.findOneAndUpdate(
+      {
+        chargePointId: chargePointId,
+        connectorId: connectorId,
+        isActive: true,
+      },
+      tariffData,
+      { new: true },
+    );
+    return updatedTariff;
+  }
+
   /**
    * Get tariff by ID
    * @param {string} id - Tariff ID
@@ -46,7 +69,7 @@ class TariffService {
   async getTariffForConnector(
     chargePointId,
     connectorId,
-    dateTime = new Date()
+    dateTime = new Date(),
   ) {
     const query = {
       chargePointId: chargePointId,
@@ -126,7 +149,7 @@ class TariffService {
     const tariff = await this.tariff.findByIdAndUpdate(
       id,
       { ...updateData, updatedAt: new Date() },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!tariff) {
@@ -170,12 +193,12 @@ class TariffService {
   async getPriceForConnector(
     chargePointId,
     connectorId,
-    dateTime = new Date()
+    dateTime = new Date(),
   ) {
     const tariff = await this.getTariffForConnector(
       chargePointId,
       connectorId,
-      dateTime
+      dateTime,
     );
 
     if (!tariff) {

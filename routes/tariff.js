@@ -74,7 +74,7 @@ router.get("/connector/:chargePointId/:connectorId", async (req, res) => {
     const tariff = await tariffService.getTariffForConnector(
       chargePointId,
       parseInt(connectorId),
-      dateTime
+      dateTime,
     );
 
     if (!tariff) {
@@ -111,7 +111,7 @@ router.get("/price/:chargePointId/:connectorId", async (req, res) => {
     const priceInfo = await tariffService.getPriceForConnector(
       chargePointId,
       parseInt(connectorId),
-      dateTime
+      dateTime,
     );
 
     if (!priceInfo) {
@@ -169,6 +169,30 @@ router.post("/", async (req, res) => {
     const tariff = await tariffService.createTariff(req.body);
     res.status(201).json({
       success: true,
+      data: tariff,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * PUT /tariff/connector/:chargePointId/:connectorId - Update tariff for a connector
+ */
+router.put("/connector/:chargePointId/:connectorId", async (req, res) => {
+  try {
+    const { chargePointId, connectorId } = req.params;
+    const tariff = await tariffService.updateConnectorTariff(
+      chargePointId,
+      connectorId,
+      req.body,
+    );
+    res.json({
+      success: true,
+      message: "Tariff updated successfully",
       data: tariff,
     });
   } catch (error) {
