@@ -165,8 +165,29 @@ router.get("/:id", async (req, res) => {
  * POST /tariff - Create a new tariff
  */
 router.post("/", async (req, res) => {
+  const reqBody = {
+    name: req.body.name,
+    description: req.body.description,
+    companyId: req.body.companyId,
+    chargePointId: req.body.chargePointId,
+    connectorId: req.body.connectorId,
+    basePrice: req.body.basePrice,
+    currency: req.body.currency,
+    timeBasedPricing: [
+      {
+        startTime: req.body.startTime,
+        endTime: req.body.endTime,
+        dayOfWeek: req.body.dayOfWeek,
+        pricePerKwh: req.body.timeBasedPricing[0].pricePerKwh,
+      },
+    ],
+    isActive: req.body.isActive,
+  };
+
+  console.log(reqBody);
+
   try {
-    const tariff = await tariffService.createTariff(req.body);
+    const tariff = await tariffService.createTariff(reqBody);
     res.status(201).json({
       success: true,
       data: tariff,

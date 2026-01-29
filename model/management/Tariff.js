@@ -7,9 +7,9 @@ const tariffSchema = new mongoose.Schema(
     // Company reference
     companyId: {
       type: String,
-      required: true,
+      required: false,
       index: true,
-      ref: "Company",
+      //ref: "Company",
     },
     // Specific to charge point and connector
     chargePointId: { type: String, required: true, index: true },
@@ -20,8 +20,8 @@ const tariffSchema = new mongoose.Schema(
     // Time-based pricing (optional)
     timeBasedPricing: [
       {
-        startTime: { type: String, required: true }, // HH:mm format
-        endTime: { type: String, required: true }, // HH:mm format
+        startTime: { type: String, required: false }, // HH:mm format
+        endTime: { type: String, required: false }, // HH:mm format
         dayOfWeek: {
           type: Number,
           enum: [0, 1, 2, 3, 4, 5, 6], // 0 = Sunday, 6 = Saturday
@@ -45,7 +45,7 @@ const tariffSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Indexes for efficient querying
@@ -55,7 +55,7 @@ tariffSchema.index({ isActive: 1, validFrom: -1, validUntil: -1 });
 // Compound index to ensure unique active tariff per connector
 tariffSchema.index(
   { chargePointId: 1, connectorId: 1, isActive: 1, validFrom: -1 },
-  { unique: false }
+  { unique: false },
 );
 
 // Method to get price per kWh for a given date/time

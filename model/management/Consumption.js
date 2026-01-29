@@ -42,7 +42,7 @@ const consumptionSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Indexes for efficient querying
@@ -52,8 +52,8 @@ consumptionSchema.index({ transactionId: 1 });
 consumptionSchema.index({ pricingId: 1 });
 consumptionSchema.index({ tariffId: 1 });
 
-// Pre-save hook to calculate energy consumed and costs
-consumptionSchema.pre("save", function (next) {
+// Pre-save hook to calculate energy consumed and costs (async for Mongoose 7+)
+consumptionSchema.pre("save", async function () {
   // Calculate energy consumed in kWh (assuming meter values are in Wh)
   if (this.meterStop && this.meterStart) {
     this.energyConsumed = (this.meterStop - this.meterStart) / 1000; // Convert Wh to kWh
@@ -70,8 +70,6 @@ consumptionSchema.pre("save", function (next) {
     this.duration =
       (this.transactionStopTime - this.transactionStartTime) / 1000; // Duration in seconds
   }
-
-  next();
 });
 
 const Consumption = mongoose.model("Consumption", consumptionSchema);

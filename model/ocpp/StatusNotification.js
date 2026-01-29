@@ -38,6 +38,10 @@ const statusNotificationSchema = new mongoose.Schema(
         "Charging",
         "SuspendedEVSE",
         "SuspendedEV",
+        "Finishing",
+        "Reserved",
+        "Unavailable",
+        "Reserved",
       ],
       index: true,
     },
@@ -50,7 +54,7 @@ const statusNotificationSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Indexes for efficient querying
@@ -63,7 +67,7 @@ statusNotificationSchema.index({ status: 1, timestamp: -1 });
 
 const StatusNotification = mongoose.model(
   "StatusNotification",
-  statusNotificationSchema
+  statusNotificationSchema,
 );
 
 export default StatusNotification;

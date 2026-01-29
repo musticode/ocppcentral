@@ -13,13 +13,13 @@ class TariffService {
   async createTariff(tariffData) {
     // Validate required fields
     if (!tariffData.companyId) {
-      throw new Error("companyId is required");
+      //throw new Error("companyId is required");
     }
     if (!tariffData.chargePointId) {
-      throw new Error("chargePointId is required");
+      //throw new Error("chargePointId is required");
     }
     if (tariffData.connectorId === undefined) {
-      throw new Error("connectorId is required");
+      //throw new Error("connectorId is required");
     }
 
     const tariff = new this.tariff(tariffData);

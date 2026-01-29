@@ -21,6 +21,9 @@ import tariffRoute from "./routes/tariff.js";
 import consumptionRoute from "./routes/consumption.js";
 import authRouter from "./routes/auth.js";
 import centralSystemRoute from "./routes/centralSystem.js";
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./configuration/swagger.js";
+
 // Connect to MongoDB
 connectDB();
 
@@ -45,4 +48,15 @@ app.use("/api/companies", companyRoute);
 app.use("/api/tariff", tariffRoute);
 app.use("/api/consumption", consumptionRoute);
 app.use("/api/central-system/charge-points/:chargePointId", centralSystemRoute);
+
+// Swagger API documentation
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    explorer: true,
+    customCss: ".swagger-ui .topbar { display: none }",
+  }),
+);
+
 export default app;

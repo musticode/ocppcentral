@@ -5,9 +5,40 @@ import {
   getPricePerKwh,
 } from "./pricingService.js";
 import tariffService from "./tariffService.js";
+import chargePointService from "./chargePointService.js";
 
 /**
- * Create consumption record from transaction
+ * Resolve tariff for the transaction's charge point and connector.
+ * Tries both charge point identifier (OCPP identity) and ChargePoint._id so tariffs
+ * work whether they were created with identifier or MongoDB id.
+ */
+async function getTariffForTransaction(transaction) {
+  const dateTime = transaction.startedAt || new Date();
+  // First try with transaction.chargePointId (OCPP identifier, e.g. client.identity)
+  let priceInfo = await tariffService.getPriceForConnector(
+    transaction.chargePointId,
+    transaction.connectorId,
+    dateTime,
+  );
+  if (priceInfo && priceInfo.tariff) return priceInfo;
+  // Resolve charge point and try with MongoDB _id (in case tariff was created with _id)
+  const chargePoint = await chargePointService.getChargePointByIdentifier(
+    transaction.chargePointId,
+  );
+  if (chargePoint && chargePoint._id) {
+    priceInfo = await tariffService.getPriceForConnector(
+      chargePoint._id.toString(),
+      transaction.connectorId,
+      dateTime,
+    );
+    if (priceInfo && priceInfo.tariff) return priceInfo;
+  }
+  return null;
+}
+
+/**
+ * Create consumption record from transaction when charge stops.
+ * Uses the related charge point's connector tariff (or charge point pricing fallback).
  */
 export const createConsumptionFromTransaction = async (transactionId) => {
   // Find the transaction
@@ -22,7 +53,7 @@ export const createConsumptionFromTransaction = async (transactionId) => {
   }
 
   // Get pricing for the transaction
-  // Priority: 1. Tariff (connector-specific), 2. Pricing (charge point level)
+  // Priority: 1. Tariff (connector-specific for this charge point), 2. Pricing (charge point level)
   let pricing = null;
   let tariff = null;
   let pricePerKwh = null;
@@ -30,12 +61,8 @@ export const createConsumptionFromTransaction = async (transactionId) => {
   let currency = "USD";
 
   try {
-    // First, check for tariff (connector-specific)
-    const priceInfo = await tariffService.getPriceForConnector(
-      transaction.chargePointId,
-      transaction.connectorId,
-      transaction.startedAt
-    );
+    // First, get connector tariff for this charge point (tries identifier and ChargePoint _id)
+    const priceInfo = await getTariffForTransaction(transaction);
 
     if (priceInfo && priceInfo.tariff) {
       tariff = priceInfo.tariff;
@@ -43,13 +70,13 @@ export const createConsumptionFromTransaction = async (transactionId) => {
       connectionFee = priceInfo.connectionFee || 0;
       currency = priceInfo.currency || "USD";
       console.log(
-        `Using tariff for transaction ${transactionId}: ${tariff.name}`
+        `Using tariff for transaction ${transactionId} (chargePoint ${transaction.chargePointId}, connector ${transaction.connectorId}): ${tariff.name}`,
       );
     } else {
       // Fall back to pricing (charge point level)
       pricing = await getActivePricingForChargePoint(
         transaction.chargePointId,
-        transaction.startedAt
+        transaction.startedAt,
       );
 
       if (pricing) {
@@ -57,14 +84,14 @@ export const createConsumptionFromTransaction = async (transactionId) => {
         connectionFee = pricing.connectionFee || 0;
         currency = pricing.currency || "USD";
         console.log(
-          `Using pricing for transaction ${transactionId}: ${pricing.name}`
+          `Using pricing for transaction ${transactionId}: ${pricing.name}`,
         );
       }
     }
   } catch (error) {
     console.warn(
       `Could not get pricing/tariff for transaction ${transactionId}:`,
-      error.message
+      error.message,
     );
   }
 
@@ -72,7 +99,7 @@ export const createConsumptionFromTransaction = async (transactionId) => {
   const existingConsumption = await Consumption.findOne({ transactionId });
   if (existingConsumption) {
     throw new Error(
-      `Consumption record already exists for transaction ${transactionId}`
+      `Consumption record already exists for transaction ${transactionId}`,
     );
   }
 
@@ -146,7 +173,7 @@ export const createConsumption = async (consumptionData) => {
           const priceInfo = await tariffService.getPriceForConnector(
             transaction.chargePointId,
             transaction.connectorId,
-            transaction.startedAt || new Date()
+            transaction.startedAt || new Date(),
           );
 
           if (priceInfo && priceInfo.tariff) {
@@ -158,12 +185,12 @@ export const createConsumption = async (consumptionData) => {
             // Fall back to pricing (charge point level)
             const pricing = await getActivePricingForChargePoint(
               transaction.chargePointId,
-              transaction.startedAt || new Date()
+              transaction.startedAt || new Date(),
             );
             if (pricing) {
               consumptionData.pricingId = pricing._id;
               consumptionData.pricePerKwh = pricing.getPriceForDateTime(
-                transaction.startedAt || new Date()
+                transaction.startedAt || new Date(),
               );
               consumptionData.connectionFee = pricing.connectionFee || 0;
               consumptionData.currency = pricing.currency || "USD";

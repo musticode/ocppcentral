@@ -7,6 +7,7 @@ import transactionService from "../management/transactionService.js";
 import chargePointService from "../management/chargePointService.js";
 import statusNotificationService from "./statusNotificationService.js";
 import { createMeterValueFromOCPP } from "./meterValueService.js";
+import { createConsumptionFromTransaction } from "../management/consumptionService.js";
 
 // Store connected clients
 const connectedClients = new Map();
@@ -37,7 +38,7 @@ server.auth((accept, reject, handshake) => {
     console.log(
       `Authentication request from: ${chargePointId} (URL: ${
         handshake.url || "N/A"
-      })`
+      })`,
     );
 
     // Accept all connections (you can add authorization logic here)
@@ -158,14 +159,14 @@ server.on("client", async (client) => {
         !Array.isArray(params.meterValue)
       ) {
         console.error(
-          "Missing required parameters: connectorId or meterValue array"
+          "Missing required parameters: connectorId or meterValue array",
         );
         return {};
       }
 
       // Verify charge point exists
       const chargePoint = await chargePointService.getChargePointByIdentifier(
-        chargePointIdentifier
+        chargePointIdentifier,
       );
 
       if (!chargePoint) {
@@ -177,16 +178,16 @@ server.on("client", async (client) => {
       if (params.transactionId) {
         const transaction =
           await transactionService.getTransactionByTransactionId(
-            params.transactionId
+            params.transactionId,
           );
 
         if (transaction) {
           console.log(
-            `MeterValues received for active transaction ${params.transactionId}`
+            `MeterValues received for active transaction ${params.transactionId}`,
           );
         } else {
           console.warn(
-            `MeterValues received for non-existent transaction ${params.transactionId}`
+            `MeterValues received for non-existent transaction ${params.transactionId}`,
           );
         }
       }
@@ -201,7 +202,7 @@ server.on("client", async (client) => {
           if (!meterValueEntry.timestamp) {
             console.warn(
               "MeterValue entry missing timestamp, skipping",
-              meterValueEntry
+              meterValueEntry,
             );
             continue;
           }
@@ -224,7 +225,7 @@ server.on("client", async (client) => {
           // The service will extract all sampledValues from the meterValue array
           const savedMeterValue = await createMeterValueFromOCPP(
             chargePointIdentifier,
-            meterValueParams
+            meterValueParams,
           );
 
           savedMeterValues.push(savedMeterValue);
@@ -237,19 +238,19 @@ server.on("client", async (client) => {
               params.connectorId
             }, transaction=${params.transactionId || "N/A"}, timestamp=${
               meterValueEntry.timestamp
-            }, sampledValues=${sampledValueCount}`
+            }, sampledValues=${sampledValueCount}`,
           );
         } catch (error) {
           console.error(
             `Error saving meter value entry: ${error.message}`,
-            error
+            error,
           );
           // Continue processing other meter values even if one fails
         }
       }
 
       console.log(
-        `Successfully saved ${savedMeterValues.length} of ${params.meterValue.length} meter value entries`
+        `Successfully saved ${savedMeterValues.length} of ${params.meterValue.length} meter value entries`,
       );
 
       // OCPP MeterValues doesn't require a response (empty object is acceptable)
@@ -275,13 +276,13 @@ server.on("client", async (client) => {
         params.meterStart === undefined
       ) {
         throw new Error(
-          "Missing required parameters: connectorId, idTag, or meterStart"
+          "Missing required parameters: connectorId, idTag, or meterStart",
         );
       }
 
       // Get charge point
       const chargePoint = await chargePointService.getChargePointByIdentifier(
-        chargePointIdentifier
+        chargePointIdentifier,
       );
 
       if (!chargePoint) {
@@ -306,16 +307,15 @@ server.on("client", async (client) => {
       }
 
       console.log(
-        `Creating transaction with data: ${JSON.stringify(transactionData)}`
+        `Creating transaction with data: ${JSON.stringify(transactionData)}`,
       );
 
       // Create transaction (transactionId will be auto-generated)
-      const transaction = await transactionService.createTransaction(
-        transactionData
-      );
+      const transaction =
+        await transactionService.createTransaction(transactionData);
 
       console.log(
-        `Transaction created with ID: ${transaction.transactionId}, MongoDB _id: ${transaction._id}`
+        `Transaction created with ID: ${transaction.transactionId}, MongoDB _id: ${transaction._id}`,
       );
 
       // Authorize idTag
@@ -328,7 +328,7 @@ server.on("client", async (client) => {
         idTagInfo = authResult;
       } catch (error) {
         console.error(
-          `Error authorizing idTag ${params.idTag}: ${error.message}`
+          `Error authorizing idTag ${params.idTag}: ${error.message}`,
         );
         // Default to Accepted if authorization fails
         idTagInfo = { status: "Accepted" };
@@ -359,7 +359,7 @@ server.on("client", async (client) => {
 
       // Verify charge point exists
       const chargePoint = await chargePointService.getChargePointByIdentifier(
-        chargePointIdentifier
+        chargePointIdentifier,
       );
 
       if (!chargePoint) {
@@ -384,7 +384,7 @@ server.on("client", async (client) => {
         transactionChargePointId !== chargePointIdString
       ) {
         console.warn(
-          `Transaction ${transactionId} chargePointId mismatch. Transaction: ${transactionChargePointId}, ChargePoint: ${chargePointIdentifier} or ${chargePointIdString}`
+          `Transaction ${transactionId} chargePointId mismatch. Transaction: ${transactionChargePointId}, ChargePoint: ${chargePointIdentifier} or ${chargePointIdString}`,
         );
         // Don't throw error, just log warning - might be due to data inconsistency
       }
@@ -400,11 +400,25 @@ server.on("client", async (client) => {
       // Stop the transaction and update in database
       const updatedTransaction = await transactionService.stopTransaction(
         transactionId,
-        stopData
+        stopData,
       );
 
+      // Calculate and persist consumption using this charge point's connector tariff
+      try {
+        await createConsumptionFromTransaction(transactionId);
+        console.log(
+          `Consumption calculated for transaction ${transactionId} (chargePoint ${chargePointIdentifier}, connector ${transaction.connectorId})`,
+        );
+      } catch (consumptionError) {
+        // Log but do not fail StopTransaction; OCPP response must still succeed
+        console.error(
+          `Failed to create consumption for transaction ${transactionId}:`,
+          consumptionError.message,
+        );
+      }
+
       console.log(
-        `Transaction ${transactionId} stopped successfully. Status: ${updatedTransaction.status}, MeterStop: ${updatedTransaction.meterStop}, StopReason: ${updatedTransaction.stopReason}`
+        `Transaction ${transactionId} stopped successfully. Status: ${updatedTransaction.status}, MeterStop: ${updatedTransaction.meterStop}, StopReason: ${updatedTransaction.stopReason}`,
       );
       console.log(
         `Updated transaction in database: ${JSON.stringify({
@@ -413,7 +427,7 @@ server.on("client", async (client) => {
           stoppedAt: updatedTransaction.stoppedAt,
           meterStop: updatedTransaction.meterStop,
           stopReason: updatedTransaction.stopReason,
-        })}`
+        })}`,
       );
 
       // Authorize idTag if provided (OCPP 1.6 requires idTagInfo in response)
@@ -455,7 +469,7 @@ server.on("client", async (client) => {
         client.identity,
         params.idTag,
         idTagInfo,
-        idTagInfo.status
+        idTagInfo.status,
       );
     }
 
@@ -468,7 +482,7 @@ server.on("client", async (client) => {
   client.handle("StatusNotification", async ({ params }) => {
     console.log(
       `Server got StatusNotification from ${client.identity}:`,
-      params
+      params,
     );
     console.log(`StatusNotification params: ${JSON.stringify(params)}`);
 
@@ -491,7 +505,7 @@ server.on("client", async (client) => {
 
       // Get or verify charge point exists
       const chargePoint = await chargePointService.getChargePointByIdentifier(
-        chargePointIdentifier
+        chargePointIdentifier,
       );
 
       if (!chargePoint) {
@@ -515,11 +529,11 @@ server.on("client", async (client) => {
         chargePointIdentifier,
         connectorId,
         status,
-        additionalData
+        additionalData,
       );
 
       console.log(
-        `Connector ${connectorId} status updated to ${status} for charge point ${chargePointIdentifier}`
+        `Connector ${connectorId} status updated to ${status} for charge point ${chargePointIdentifier}`,
       );
 
       // Save StatusNotification record for history
@@ -528,7 +542,7 @@ server.on("client", async (client) => {
           chargePointIdentifier,
           connectorId,
           status,
-          additionalData
+          additionalData,
         );
 
       console.log(`StatusNotification saved: ${statusNotification._id}`);
@@ -555,7 +569,7 @@ server.on("client", async (client) => {
   client.handle("FirmwareStatusNotification", ({ params }) => {
     console.log(
       `Server got FirmwareStatusNotification from ${client.identity}:`,
-      params
+      params,
     );
     // params: status (Downloaded, DownloadFailed, InstallationFailed, Installed, Installing)
 
@@ -567,7 +581,7 @@ server.on("client", async (client) => {
   client.handle("DiagnosticsStatusNotification", ({ params }) => {
     console.log(
       `Server got DiagnosticsStatusNotification from ${client.identity}:`,
-      params
+      params,
     );
     // params: status (Idle, Uploaded, UploadFailed, Uploading)
 
