@@ -3,6 +3,7 @@ import IdTag from "../../model/ocpp/IdTag.js";
 import User from "../../model/management/User.js";
 import { canUserAuthenticate } from "../management/userService.js";
 import { getActivePricingForUser } from "../management/pricingService.js";
+import paymentService from "../management/paymentService.js";
 
 // Authorization service for OCPP idTags
 // In production, this should connect to a database or external authorization service
@@ -78,6 +79,21 @@ async function authorizeOCPPRequest(idTag) {
       }
     }
 
+    // Check payment info: block if user has outstanding or failed payments
+    const paymentCheck = await paymentService.checkPaymentStatusForAuthorization(
+      idTag,
+      idTagDoc.userId?.toString?.() ?? idTagDoc.userId
+    );
+    if (!paymentCheck.allowed) {
+      return {
+        status: paymentCheck.status || "Blocked",
+        expiryDate: idTagDoc.expiryDate
+          ? idTagDoc.expiryDate.toISOString()
+          : undefined,
+        parentIdTag: idTagDoc.parentIdTag,
+      };
+    }
+
     // Valid idTag
     return {
       status: idTagDoc.status || "Accepted",
@@ -90,6 +106,12 @@ async function authorizeOCPPRequest(idTag) {
 
   // Check if idTag exists in in-memory authorized list (for backward compatibility)
   if (authorizedTags.has(idTag)) {
+    const paymentCheck = await paymentService.checkPaymentStatusForAuthorization(idTag);
+    if (!paymentCheck.allowed) {
+      return {
+        status: paymentCheck.status || "Blocked",
+      };
+    }
     // Set expiry date to 1 year from now (optional)
     const expiryDate = new Date();
     expiryDate.setFullYear(expiryDate.getFullYear() + 1);
@@ -113,6 +135,15 @@ async function authorizeOCPPRequest(idTag) {
 
     // Customer without pricing can authenticate all chargepoints
     if (!userPricing) {
+      const paymentCheck = await paymentService.checkPaymentStatusForAuthorization(
+        idTag,
+        user._id.toString()
+      );
+      if (!paymentCheck.allowed) {
+        return {
+          status: paymentCheck.status || "Blocked",
+        };
+      }
       return {
         status: "Accepted",
         expiryDate: undefined, // No expiry for customers without pricing

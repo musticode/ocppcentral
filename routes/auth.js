@@ -38,16 +38,16 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.post("/register", async (req, res) => {
+router.post("/signup", async (req, res) => {
+  console.log("signup", req.body);
   try {
-    const { name, email, password } = req.body;
+    //const { name, email, password } = req.body;
+    const name = req.body.user.name;
+    const email = req.body.user.email;
+    const password = req.body.user.password;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Name, email, and password are required",
-      });
-    }
+    // TODO : add company info when signup
+    //const companyInfo = req.body.companyInfo;
 
     const result = await registerUser(name, email, password);
 

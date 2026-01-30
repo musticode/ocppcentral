@@ -6,6 +6,98 @@ class TariffService {
   }
 
   /**
+   * Check if two time ranges (HH:mm) overlap
+   * @param {string} start1 - Start time (HH:mm)
+   * @param {string} end1 - End time (HH:mm)
+   * @param {string} start2 - Start time (HH:mm)
+   * @param {string} end2 - End time (HH:mm)
+   * @returns {boolean} True if ranges overlap
+   */
+  _timeRangesOverlap(start1, end1, start2, end2) {
+    if (!start1 || !end1 || !start2 || !end2) return false;
+    return start1 <= end2 && start2 <= end1;
+  }
+
+  /**
+   * Check if two day-of-week selections overlap.
+   * undefined/null means "all days", so it overlaps with any specific day.
+   * @param {number|undefined|null} day1 - Day of week (0-6)
+   * @param {number|undefined|null} day2 - Day of week (0-6)
+   * @returns {boolean} True if they apply on the same day
+   */
+  _daysOverlap(day1, day2) {
+    if (day1 === undefined || day1 === null) return true;
+    if (day2 === undefined || day2 === null) return true;
+    return day1 === day2;
+  }
+
+  /**
+   * Check if a new time-based pricing entry conflicts with existing entries.
+   * @param {Array} newEntries - New timeBasedPricing entries
+   * @param {Array} existingEntries - Existing timeBasedPricing entries
+   * @returns {boolean} True if there is a conflict
+   */
+  _hasOverlappingTimeZones(newEntries, existingEntries) {
+    if (!newEntries?.length || !existingEntries?.length) return false;
+    for (const newEntry of newEntries) {
+      for (const existingEntry of existingEntries) {
+        const sameDay = this._daysOverlap(
+          newEntry.dayOfWeek,
+          existingEntry.dayOfWeek,
+        );
+        const timeOverlap = this._timeRangesOverlap(
+          newEntry.startTime,
+          newEntry.endTime,
+          existingEntry.startTime,
+          existingEntry.endTime,
+        );
+        if (sameDay && timeOverlap) return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Validate that no active tariff for the same chargePointId and connectorId
+   * has overlapping time zones (same dayOfWeek + overlapping startTime/endTime).
+   * @param {string} chargePointId - Charge point ID
+   * @param {number} connectorId - Connector ID
+   * @param {Array} timeBasedPricing - Time-based pricing entries to check
+   * @param {string} [excludeTariffId] - Tariff ID to exclude (e.g. when updating)
+   * @throws {Error} If a conflict is found
+   */
+  async _assertNoTariffConflict(
+    chargePointId,
+    connectorId,
+    timeBasedPricing,
+    excludeTariffId = null,
+  ) {
+    if (!timeBasedPricing?.length) return;
+
+    const query = {
+      chargePointId,
+      connectorId,
+      isActive: true,
+    };
+    if (excludeTariffId) {
+      query._id = { $ne: excludeTariffId };
+    }
+
+    const existingTariffs = await this.tariff.find(query);
+    for (const existing of existingTariffs) {
+      const conflict = this._hasOverlappingTimeZones(
+        timeBasedPricing,
+        existing.timeBasedPricing || [],
+      );
+      if (conflict) {
+        throw new Error(
+          `Tariff conflict: an active tariff already exists for this charge point and connector with overlapping time zone (same day and overlapping start/end time). Resolve or deactivate the existing tariff first.`,
+        );
+      }
+    }
+  }
+
+  /**
    * Create a new tariff
    * @param {object} tariffData - Tariff data
    * @returns {Promise<Tariff>} Created tariff
@@ -22,6 +114,12 @@ class TariffService {
       //throw new Error("connectorId is required");
     }
 
+    await this._assertNoTariffConflict(
+      tariffData.chargePointId,
+      tariffData.connectorId,
+      tariffData.timeBasedPricing,
+    );
+
     const tariff = new this.tariff(tariffData);
     await tariff.save();
     return tariff;
@@ -37,6 +135,18 @@ class TariffService {
       .sort({ validFrom: -1, createdAt: -1 });
     if (!tariff) {
       throw new Error("No active tariff found for this connector");
+    }
+    const mergedTimeBasedPricing =
+      tariffData.timeBasedPricing !== undefined
+        ? tariffData.timeBasedPricing
+        : tariff.timeBasedPricing;
+    if (mergedTimeBasedPricing?.length) {
+      await this._assertNoTariffConflict(
+        chargePointId,
+        connectorId,
+        mergedTimeBasedPricing,
+        tariff._id.toString(),
+      );
     }
     const updatedTariff = await this.tariff.findOneAndUpdate(
       {
@@ -146,15 +256,29 @@ class TariffService {
    * @returns {Promise<Tariff>} Updated tariff
    */
   async updateTariff(id, updateData) {
+    const existing = await this.tariff.findById(id);
+    if (!existing) {
+      throw new Error(`Tariff with id ${id} not found`);
+    }
+
+    const mergedTimeBasedPricing =
+      updateData.timeBasedPricing !== undefined
+        ? updateData.timeBasedPricing
+        : existing.timeBasedPricing;
+    if (mergedTimeBasedPricing?.length) {
+      await this._assertNoTariffConflict(
+        existing.chargePointId,
+        existing.connectorId,
+        mergedTimeBasedPricing,
+        id,
+      );
+    }
+
     const tariff = await this.tariff.findByIdAndUpdate(
       id,
       { ...updateData, updatedAt: new Date() },
       { new: true, runValidators: true },
     );
-
-    if (!tariff) {
-      throw new Error(`Tariff with id ${id} not found`);
-    }
 
     return tariff;
   }

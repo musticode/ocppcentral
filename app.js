@@ -7,6 +7,7 @@
 // var usersRouter = require("./routes/users");
 
 import express from "express";
+import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import cookieParser from "cookie-parser";
@@ -19,6 +20,7 @@ import transactionRoute from "./routes/transaction.js";
 import companyRoute from "./routes/company.js";
 import tariffRoute from "./routes/tariff.js";
 import consumptionRoute from "./routes/consumption.js";
+import paymentRoute from "./routes/payment.js";
 import authRouter from "./routes/auth.js";
 import centralSystemRoute from "./routes/centralSystem.js";
 import swaggerUi from "swagger-ui-express";
@@ -31,6 +33,20 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// CORS: allow frontend origin(s); use FRONTEND_URL in production
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+  ],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+app.use(cors(corsOptions));
 
 app.use(logger("dev"));
 app.use(express.json());
@@ -47,6 +63,7 @@ app.use("/api/transactions", transactionRoute);
 app.use("/api/companies", companyRoute);
 app.use("/api/tariff", tariffRoute);
 app.use("/api/consumption", consumptionRoute);
+app.use("/api/payments", paymentRoute);
 app.use("/api/central-system/charge-points/:chargePointId", centralSystemRoute);
 
 // Swagger API documentation
