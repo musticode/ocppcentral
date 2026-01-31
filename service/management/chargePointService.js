@@ -26,11 +26,11 @@ export class ChargePointService {
   }
 
   async getChargePointById(id) {
-    return await this.chargePoint.findById(id);
+    return await this.chargePoint.findById(id).populate("locationId");
   }
 
   async getAllChargePoints() {
-    return await this.chargePoint.find();
+    return await this.chargePoint.find().populate("locationId");
   }
 
   async updateChargePointStatus(identifier, status) {
@@ -117,7 +117,9 @@ export class ChargePointService {
   }
 
   async updateChargePoint(id, chargePointData) {
-    return await this.chargePoint.findByIdAndUpdate(id, chargePointData);
+    return await this.chargePoint
+      .findByIdAndUpdate(id, chargePointData, { new: true })
+      .populate("locationId");
   }
 
   async deleteChargePoint(id) {

@@ -53,6 +53,7 @@ const options = {
       { name: "Charge Points", description: "Charge point management" },
       { name: "Transactions", description: "Charging transactions" },
       { name: "Companies", description: "Company management" },
+      { name: "Locations", description: "Location management" },
       { name: "Tariff", description: "Tariffs and pricing" },
       { name: "Consumption", description: "Consumption data" },
       {
@@ -211,6 +212,78 @@ const options = {
           },
         },
       },
+      "/api/charge-points/{id}": {
+        put: {
+          tags: ["Charge Points"],
+          summary: "Update charge point",
+          parameters: [
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          requestBody: {
+            content: { "application/json": { schema: { type: "object" } } },
+          },
+          responses: {
+            200: { description: "Updated" },
+            404: { description: "Charge point not found" },
+          },
+        },
+        delete: {
+          tags: ["Charge Points"],
+          summary: "Delete charge point",
+          parameters: [
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          responses: {
+            200: { description: "Deleted" },
+            404: { description: "Charge point not found" },
+          },
+        },
+      },
+      "/api/charge-points/{id}/location": {
+        put: {
+          tags: ["Charge Points"],
+          summary: "Update charge point location relation",
+          parameters: [
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          requestBody: {
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    locationId: {
+                      type: "string",
+                      nullable: true,
+                      description:
+                        "Location MongoDB _id or null to unassign",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: "Charge point with updated location" },
+            404: { description: "Charge point or location not found" },
+          },
+        },
+      },
       "/api/transactions/listAllTransactions": {
         get: {
           tags: ["Transactions"],
@@ -253,6 +326,125 @@ const options = {
             },
           ],
           responses: { 200: { description: "Company" } },
+        },
+      },
+      "/api/locations/listAllLocations": {
+        get: {
+          tags: ["Locations"],
+          summary: "List all locations",
+          responses: { 200: { description: "List of locations" } },
+        },
+      },
+      "/api/locations/createLocation": {
+        post: {
+          tags: ["Locations"],
+          summary: "Create location",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["name", "address"],
+                  properties: {
+                    name: { type: "string" },
+                    address: { type: "string" },
+                    latitude: { type: "number" },
+                    longitude: { type: "number" },
+                    description: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: "Created" },
+            400: { description: "Name and address required" },
+          },
+        },
+      },
+      "/api/locations/{id}": {
+        get: {
+          tags: ["Locations"],
+          summary: "Get location by ID",
+          parameters: [
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          responses: {
+            200: { description: "Location" },
+            404: { description: "Location not found" },
+          },
+        },
+        put: {
+          tags: ["Locations"],
+          summary: "Update location",
+          parameters: [
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          requestBody: {
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    name: { type: "string" },
+                    address: { type: "string" },
+                    latitude: { type: "number" },
+                    longitude: { type: "number" },
+                    description: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: "Updated" },
+            404: { description: "Location not found" },
+          },
+        },
+        delete: {
+          tags: ["Locations"],
+          summary: "Delete location (unassigns charge points first)",
+          parameters: [
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          responses: {
+            200: { description: "Deleted" },
+            404: { description: "Location not found" },
+          },
+        },
+      },
+      "/api/locations/{id}/charge-points": {
+        get: {
+          tags: ["Locations"],
+          summary: "Get charge points for a location",
+          parameters: [
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          responses: {
+            200: { description: "Charge points at this location" },
+            404: { description: "Location not found" },
+          },
         },
       },
       "/api/companies/createCompany": {

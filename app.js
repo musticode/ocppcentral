@@ -18,6 +18,7 @@ import usersRouter from "./routes/users.js"; //
 import chargePointRoute from "./routes/chargePointRoute.js";
 import transactionRoute from "./routes/transaction.js";
 import companyRoute from "./routes/company.js";
+import locationRoute from "./routes/location.js";
 import tariffRoute from "./routes/tariff.js";
 import consumptionRoute from "./routes/consumption.js";
 import paymentRoute from "./routes/payment.js";
@@ -61,6 +62,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/charge-points", chargePointRoute);
 app.use("/api/transactions", transactionRoute);
 app.use("/api/companies", companyRoute);
+app.use("/api/locations", locationRoute);
 app.use("/api/tariff", tariffRoute);
 app.use("/api/consumption", consumptionRoute);
 app.use("/api/payments", paymentRoute);
