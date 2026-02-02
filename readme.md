@@ -14,6 +14,35 @@ npm run start
 
 - http://localhost:3000/api-docs/
 
+## Company
+
+```bash
+curl -X 'POST' \
+  'http://localhost:3000/api/companies/createCompany' \
+  -H 'accept: */*' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "user": {
+    "name": "John Doe",
+    "email": "john@example.com",
+    "password": "securePassword123"
+  },
+  "company": {
+    "name": "Acme Corp",
+    "email": "contact@acme.com",
+    "phone": "+1234567890",
+    "address": "123 Main St",
+    "city": "New York",
+    "state": "NY",
+    "zipCode": "10001",
+    "country": "USA",
+    "website": "https://acme.com",
+    "taxId": "12-3456789",
+    "registrationNumber": "REG123456"
+  }
+}'
+```
+
 ### Tariff
 
 #### Tariff conflict validations

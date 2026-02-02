@@ -89,21 +89,53 @@ const options = {
           },
         },
       },
-      "/api/auth/register": {
+      "/api/auth/signup": {
         post: {
           tags: ["Auth"],
-          summary: "Register",
+          summary: "Signup",
           requestBody: {
             required: true,
             content: {
               "application/json": {
                 schema: {
                   type: "object",
-                  required: ["name", "email", "password"],
+                  required: ["user", "company"],
                   properties: {
-                    name: { type: "string" },
-                    email: { type: "string", format: "email" },
-                    password: { type: "string" },
+                    user: {
+                      type: "object",
+                      required: ["name", "email", "password"],
+                      properties: {
+                        name: { type: "string" },
+                        email: { type: "string", format: "email" },
+                        password: { type: "string" },
+                      },
+                    },
+                    company: {
+                      type: "object",
+                      required: [
+                        "name",
+                        "email",
+                        "phone",
+                        "address",
+                        "city",
+                        "state",
+                        "zipCode",
+                        "country",
+                      ],
+                      properties: {
+                        name: { type: "string" },
+                        email: { type: "string", format: "email" },
+                        phone: { type: "string" },
+                        address: { type: "string" },
+                        city: { type: "string" },
+                        state: { type: "string" },
+                        zipCode: { type: "string" },
+                        country: { type: "string" },
+                        website: { type: "string" },
+                        taxId: { type: "string" },
+                        registrationNumber: { type: "string" },
+                      },
+                    },
                   },
                 },
               },
@@ -270,8 +302,7 @@ const options = {
                     locationId: {
                       type: "string",
                       nullable: true,
-                      description:
-                        "Location MongoDB _id or null to unassign",
+                      description: "Location MongoDB _id or null to unassign",
                     },
                   },
                 },

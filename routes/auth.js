@@ -39,17 +39,37 @@ router.post("/login", async (req, res) => {
 });
 
 router.post("/signup", async (req, res) => {
-  console.log("signup", req.body);
   try {
-    //const { name, email, password } = req.body;
-    const name = req.body.user.name;
-    const email = req.body.user.email;
-    const password = req.body.user.password;
+    const { user: userData, company: companyData } = req.body;
 
-    // TODO : add company info when signup
-    //const companyInfo = req.body.companyInfo;
+    if (!userData?.name || !userData?.email || !userData?.password) {
+      return res.status(400).json({
+        success: false,
+        message: "User name, email and password are required",
+      });
+    }
 
-    const result = await registerUser(name, email, password);
+    const requiredCompanyFields = [
+      "name",
+      "email",
+      "phone",
+      "address",
+      "city",
+      "state",
+      "zipCode",
+      "country",
+    ];
+    const missingCompanyFields = requiredCompanyFields.filter(
+      (field) => !companyData?.[field]
+    );
+    if (missingCompanyFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Company ${missingCompanyFields.join(", ")} are required`,
+      });
+    }
+
+    const result = await registerUser(userData, companyData);
 
     if (!result.success) {
       return res.status(400).json(result);

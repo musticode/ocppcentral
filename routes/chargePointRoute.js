@@ -6,7 +6,8 @@ const router = express.Router();
 
 router.get("/listAllChargePoints", async (req, res) => {
   try {
-    const chargePoints = await ChargePointService.getAllChargePoints();
+    const { companyId } = req.params;
+    const chargePoints = await ChargePointService.getAllChargePoints(companyId);
     res.json({
       success: true,
       data: chargePoints,

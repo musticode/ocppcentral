@@ -29,8 +29,15 @@ export class ChargePointService {
     return await this.chargePoint.findById(id).populate("locationId");
   }
 
-  async getAllChargePoints() {
-    return await this.chargePoint.find().populate("locationId");
+  async getAllChargePoints(companyId) {
+    if (!companyId) {
+      throw new Error("Company ID is required");
+    }
+
+    return await this.chargePoint
+      .find({ companyId: companyId })
+      //.populate("locationId")
+      .populate("companyId");
   }
 
   async updateChargePointStatus(identifier, status) {

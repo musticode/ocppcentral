@@ -32,6 +32,12 @@ const chargePointSchema = new mongoose.Schema(
       longitude: { type: Number },
       address: { type: String },
     },
+    companyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Company",
+      default: null,
+    },
+    companyName: { type: String },
     // Reference to Location model - charge point can be assigned to a location
     locationId: {
       type: mongoose.Schema.Types.ObjectId,

@@ -1,6 +1,8 @@
 import User from "../../model/management/User.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import Company from "../../model/management/Company.js";
+import { v4 as uuidv4 } from "uuid";
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -74,8 +76,23 @@ export const loginUser = async (email, password) => {
   }
 };
 
-export const registerUser = async (name, email, password) => {
+export const registerUser = async (userData, companyData) => {
   try {
+    const { name, email, password } = userData;
+    const {
+      name: companyName,
+      email: companyEmail,
+      phone,
+      address,
+      city,
+      state,
+      zipCode,
+      country,
+      website,
+      taxId,
+      registrationNumber,
+    } = companyData;
+
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -88,24 +105,52 @@ export const registerUser = async (name, email, password) => {
     // Create user
     const user = await User.create({ name, email, password: hashedPassword });
 
+    // Create company if it doesn't exist
+    let company = await Company.findOne({
+      $or: [{ name: companyName }, { email: companyEmail }],
+    });
+    if (!company) {
+      company = await Company.create({
+        id: uuidv4(),
+        name: companyName,
+        email: companyEmail,
+        phone,
+        address,
+        city,
+        state,
+        zipCode,
+        country,
+        ...(website && { website }),
+        ...(taxId && { taxId }),
+        ...(registrationNumber && { registrationNumber }),
+      });
+      user.companyId = company.id;
+      user.companyName = company.name;
+      await user.save();
+    } else {
+      user.companyId = company.id;
+      user.companyName = company.name;
+      await user.save();
+    }
+
     // Generate JWT token
     const token = generateToken(user._id);
 
     // Return user data without password
-    const userData = {
+    const responseUserData = {
       id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
       companyId: user.companyId,
-      companyName: user.companyName,
+      companyName: company.name,
     };
 
     return {
       success: true,
       message: "User registered successfully",
       token,
-      user: userData,
+      user: responseUserData,
     };
   } catch (error) {
     return { success: false, message: error.message };
