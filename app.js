@@ -22,6 +22,7 @@ import locationRoute from "./routes/location.js";
 import tariffRoute from "./routes/tariff.js";
 import consumptionRoute from "./routes/consumption.js";
 import paymentRoute from "./routes/payment.js";
+import notificationRoute from "./routes/notification.js";
 import authRouter from "./routes/auth.js";
 import centralSystemRoute from "./routes/centralSystem.js";
 import swaggerUi from "swagger-ui-express";
@@ -66,6 +67,7 @@ app.use("/api/locations", locationRoute);
 app.use("/api/tariff", tariffRoute);
 app.use("/api/consumption", consumptionRoute);
 app.use("/api/payments", paymentRoute);
+app.use("/api/notifications", notificationRoute);
 app.use("/api/central-system/charge-points/:chargePointId", centralSystemRoute);
 
 // Swagger API documentation
@@ -75,7 +77,7 @@ app.use(
   swaggerUi.setup(swaggerSpec, {
     explorer: true,
     customCss: ".swagger-ui .topbar { display: none }",
-  }),
+  })
 );
 
 export default app;
