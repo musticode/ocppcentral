@@ -4,6 +4,12 @@ const idTagSchema = new mongoose.Schema(
   {
     idTag: { type: String, required: true, unique: true, index: true },
     parentIdTag: { type: String }, // Optional: parent idTag if this is a child tag
+    companyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Company",
+      default: null,
+      index: true,
+    },
     status: {
       type: String,
       required: true,
@@ -19,6 +25,7 @@ const idTagSchema = new mongoose.Schema(
     updatedAt: { type: Date, default: Date.now },
     // Additional info
     notes: { type: String },
+    description: { type: String },
     isActive: { type: Boolean, default: true, index: true },
   },
   {
@@ -29,6 +36,8 @@ const idTagSchema = new mongoose.Schema(
 // Indexes
 idTagSchema.index({ status: 1, isActive: 1 });
 idTagSchema.index({ expiryDate: 1 });
+idTagSchema.index({ companyId: 1, isActive: 1 });
+idTagSchema.index({ userId: 1, isActive: 1 });
 
 // Virtual to check if tag is expired
 idTagSchema.virtual("isExpired").get(function () {

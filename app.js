@@ -16,6 +16,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import { fileURLToPath } from "url";
+import idTagRoute from "./routes/idTag.js";
 import locationRoute from "./routes/location.js";
 import logger from "morgan";
 import notificationRoute from "./routes/notification.js";
@@ -73,6 +74,7 @@ app.use("/api/notifications", notificationRoute);
 app.use("/api/central-system/charge-points/:chargePointId", centralSystemRoute);
 app.use("/api/ocpp", sendRemoteRequest);
 app.use("/api/reports", reportRoute);
+app.use("/api/id-tags", idTagRoute);
 
 // Swagger API documentation
 app.use(
