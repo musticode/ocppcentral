@@ -248,6 +248,23 @@ router.post("/reserve-now", async (req, res) => {
   }
 });
 
+/** Cancel reservation: cancels an existing reservation */
+router.post("/cancel-reservation", async (req, res) => {
+  let validationError = null;
+  try {
+    const chargePointId = getChargePointId(req);
+    const { reservationId } = req.body ?? {};
+    if (reservationId == null) validationError = new Error("reservationId is required");
+    if (validationError) return sendResult(res, null, validationError);
+    const result = await centralSystemService.cancelReservation(chargePointId, {
+      reservationId,
+    });
+    return sendResult(res, result);
+  } catch (e) {
+    return sendResult(res, { success: false, error: e?.message || String(e) });
+  }
+});
+
 /** Trigger message: request charger to send a specific message */
 router.post("/trigger-message", async (req, res) => {
   let validationError = null;

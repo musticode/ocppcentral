@@ -23,6 +23,7 @@ import notificationRoute from "./routes/notification.js";
 import path from "path";
 import paymentRoute from "./routes/payment.js";
 import reportRoute from "./routes/report.js";
+import reservationRoute from "./routes/reservation.js";
 import sendRemoteRequest from "./service/ocpp/sendRemoteRequest.js";
 import swaggerSpec from "./configuration/swagger.js";
 import swaggerUi from "swagger-ui-express";
@@ -74,6 +75,7 @@ app.use("/api/notifications", notificationRoute);
 app.use("/api/central-system/charge-points/:chargePointId", centralSystemRoute);
 app.use("/api/ocpp", sendRemoteRequest);
 app.use("/api/reports", reportRoute);
+app.use("/api/reservations", reservationRoute);
 app.use("/api/id-tags", idTagRoute);
 
 // Swagger API documentation

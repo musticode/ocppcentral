@@ -258,6 +258,22 @@ export async function reserveNow(chargePointId, options = {}) {
   return call(chargePointId, "ReserveNow", params);
 }
 
+/**
+ * Cancel reservation: cancels an existing reservation.
+ * @param {string} chargePointId
+ * @param {object} options
+ * @param {number} options.reservationId - The reservation ID to cancel
+ */
+export async function cancelReservation(chargePointId, options = {}) {
+  const { reservationId } = options;
+  if (reservationId == null) {
+    throw new Error("reservationId is required for CancelReservation");
+  }
+  return call(chargePointId, "CancelReservation", {
+    reservationId: Number(reservationId),
+  });
+}
+
 /** TriggerMessage requestedMessage values (OCPP 1.6 MessageTrigger). */
 export const TriggerMessageType = Object.freeze({
   BootNotification: "BootNotification",
@@ -302,6 +318,7 @@ export default {
   sendLocalList,
   getLocalListVersion,
   reserveNow,
+  cancelReservation,
   triggerMessage,
   TriggerMessageType,
 };
