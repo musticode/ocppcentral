@@ -70,3 +70,15 @@ curl -X 'POST' \
    Times overlap
    The intervals [startTime, endTime] overlap (HH:mm comparison).
    So you cannot have two active tariffs for the same charge point and connector with overlapping time zones (same day and overlapping start/end time). On conflict, the service throws a clear error so the caller can handle it.
+
+
+### Requests 
+
+```bash
+curl --location 'http://localhost:3000/api/central-system/charge-points/00000001111/clear-cache' \
+--header 'Content-Type: application/json' \
+--data '{
+    "chargePointId" : "00000001111"
+}'
+```
+

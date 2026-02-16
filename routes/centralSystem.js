@@ -1,5 +1,5 @@
-import express from "express";
 import centralSystemService from "../service/ocpp/centralSystemService.js";
+import express from "express";
 
 const router = express.Router({ mergeParams: true });
 
@@ -61,6 +61,7 @@ router.post("/change-configuration", async (req, res) => {
 
 /** Clear cache: clears local authorization cache */
 router.post("/clear-cache", async (req, res) => {
+  console.log("Clear cache");
   try {
     const chargePointId = getChargePointId(req);
     const result = await centralSystemService.clearCache(chargePointId);

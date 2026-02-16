@@ -6,27 +6,29 @@
 // var indexRouter = require("./routes/index");
 // var usersRouter = require("./routes/users");
 
-import express from "express";
-import cors from "cors";
-import path from "path";
-import { fileURLToPath } from "url";
-import cookieParser from "cookie-parser";
-import logger from "morgan";
-import connectDB from "./configuration/db.js";
-// import indexRouter from "./routes/index.js";
-import usersRouter from "./routes/users.js"; //
-import chargePointRoute from "./routes/chargePointRoute.js";
-import transactionRoute from "./routes/transaction.js";
-import companyRoute from "./routes/company.js";
-import locationRoute from "./routes/location.js";
-import tariffRoute from "./routes/tariff.js";
-import consumptionRoute from "./routes/consumption.js";
-import paymentRoute from "./routes/payment.js";
-import notificationRoute from "./routes/notification.js";
 import authRouter from "./routes/auth.js";
 import centralSystemRoute from "./routes/centralSystem.js";
-import swaggerUi from "swagger-ui-express";
+import chargePointRoute from "./routes/chargePointRoute.js";
+import companyRoute from "./routes/company.js";
+import connectDB from "./configuration/db.js";
+import consumptionRoute from "./routes/consumption.js";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import express from "express";
+import { fileURLToPath } from "url";
+import locationRoute from "./routes/location.js";
+import logger from "morgan";
+import notificationRoute from "./routes/notification.js";
+import path from "path";
+import paymentRoute from "./routes/payment.js";
+import reportRoute from "./routes/report.js";
+import sendRemoteRequest from "./service/ocpp/sendRemoteRequest.js";
 import swaggerSpec from "./configuration/swagger.js";
+import swaggerUi from "swagger-ui-express";
+import tariffRoute from "./routes/tariff.js";
+import transactionRoute from "./routes/transaction.js";
+// import indexRouter from "./routes/index.js";
+import usersRouter from "./routes/users.js"; //
 
 // Connect to MongoDB
 connectDB();
@@ -69,6 +71,8 @@ app.use("/api/consumption", consumptionRoute);
 app.use("/api/payments", paymentRoute);
 app.use("/api/notifications", notificationRoute);
 app.use("/api/central-system/charge-points/:chargePointId", centralSystemRoute);
+app.use("/api/ocpp", sendRemoteRequest);
+app.use("/api/reports", reportRoute);
 
 // Swagger API documentation
 app.use(
