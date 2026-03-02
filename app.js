@@ -7,6 +7,7 @@
 // var usersRouter = require("./routes/users");
 
 import authRouter from "./routes/auth.js";
+import carRoute from "./routes/car.js";
 import centralSystemRoute from "./routes/centralSystem.js";
 import chargePointRoute from "./routes/chargePointRoute.js";
 import companyRoute from "./routes/company.js";
@@ -76,6 +77,7 @@ app.use("/api/central-system/charge-points/:chargePointId", centralSystemRoute);
 app.use("/api/ocpp", sendRemoteRequest);
 app.use("/api/reports", reportRoute);
 app.use("/api/reservations", reservationRoute);
+app.use("/api/cars", carRoute);
 app.use("/api/id-tags", idTagRoute);
 
 // Swagger API documentation
