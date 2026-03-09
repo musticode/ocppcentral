@@ -56,6 +56,8 @@ const options = {
       { name: "Locations", description: "Location management" },
       { name: "Tariff", description: "Tariffs and pricing" },
       { name: "Consumption", description: "Consumption data" },
+      { name: "Reservations", description: "Charge point reservations (OCPP)" },
+      { name: "Cars", description: "Electric vehicle management" },
       {
         name: "Central System",
         description: "OCPP central system (charge point control)",
@@ -1126,6 +1128,38 @@ const options = {
           },
         },
       },
+      "/api/central-system/charge-points/{chargePointId}/cancel-reservation": {
+        post: {
+          tags: ["Central System"],
+          summary: "Cancel reservation",
+          parameters: [
+            {
+              name: "chargePointId",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["reservationId"],
+                  properties: {
+                    reservationId: { type: "integer" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: "OK" },
+            404: { description: "Not connected" },
+          },
+        },
+      },
       "/api/central-system/charge-points/{chargePointId}/trigger-message": {
         post: {
           tags: ["Central System"],
@@ -1175,6 +1209,397 @@ const options = {
             responses: { 200: { description: "Trigger message types" } },
           },
         },
+      "/api/reservations": {
+        get: {
+          tags: ["Reservations"],
+          summary: "List all reservations with optional filters",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "chargePointId", in: "query", schema: { type: "string" } },
+            { name: "idTag", in: "query", schema: { type: "string" } },
+            { name: "status", in: "query", schema: { type: "string", enum: ["Active", "Used", "Expired", "Cancelled"] } },
+            { name: "isActive", in: "query", schema: { type: "boolean" } },
+          ],
+          responses: {
+            200: { description: "List of reservations" },
+            500: { description: "Error" },
+          },
+        },
+        post: {
+          tags: ["Reservations"],
+          summary: "Create a new reservation",
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["chargePointId", "idTag", "expiryDate"],
+                  properties: {
+                    chargePointId: { type: "string" },
+                    connectorId: { type: "integer" },
+                    idTag: { type: "string" },
+                    expiryDate: { type: "string", format: "date-time" },
+                    reservationId: { type: "integer" },
+                    parentIdTag: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            201: { description: "Reservation created" },
+            400: { description: "Validation error" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/reservations/{reservationId}": {
+        get: {
+          tags: ["Reservations"],
+          summary: "Get a specific reservation by ID",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "reservationId", in: "path", required: true, schema: { type: "integer" } },
+          ],
+          responses: {
+            200: { description: "Reservation details" },
+            404: { description: "Reservation not found" },
+            500: { description: "Error" },
+          },
+        },
+        delete: {
+          tags: ["Reservations"],
+          summary: "Delete a reservation (admin only)",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "reservationId", in: "path", required: true, schema: { type: "integer" } },
+          ],
+          responses: {
+            200: { description: "Reservation deleted" },
+            404: { description: "Reservation not found" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/reservations/{reservationId}/cancel": {
+        post: {
+          tags: ["Reservations"],
+          summary: "Cancel a reservation",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "reservationId", in: "path", required: true, schema: { type: "integer" } },
+          ],
+          requestBody: {
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    reason: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: "Reservation cancelled" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/reservations/charge-point/{chargePointId}": {
+        get: {
+          tags: ["Reservations"],
+          summary: "Get reservations for a specific charge point",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "chargePointId", in: "path", required: true, schema: { type: "string" } },
+            { name: "status", in: "query", schema: { type: "string" } },
+            { name: "isActive", in: "query", schema: { type: "boolean" } },
+          ],
+          responses: {
+            200: { description: "Reservations for charge point" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/reservations/id-tag/{idTag}": {
+        get: {
+          tags: ["Reservations"],
+          summary: "Get reservations for a specific idTag",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "idTag", in: "path", required: true, schema: { type: "string" } },
+            { name: "status", in: "query", schema: { type: "string" } },
+            { name: "isActive", in: "query", schema: { type: "boolean" } },
+          ],
+          responses: {
+            200: { description: "Reservations for idTag" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/reservations/validate": {
+        post: {
+          tags: ["Reservations"],
+          summary: "Validate if a reservation can be made",
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["chargePointId", "idTag"],
+                  properties: {
+                    chargePointId: { type: "string" },
+                    connectorId: { type: "integer" },
+                    idTag: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: "Validation result" },
+            400: { description: "Validation error" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/reservations/expire-old": {
+        post: {
+          tags: ["Reservations"],
+          summary: "Mark expired reservations as expired",
+          security: [{ bearerAuth: [] }],
+          responses: {
+            200: { description: "Expired reservations count" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/cars": {
+        get: {
+          tags: ["Cars"],
+          summary: "List all cars with optional filters",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "userId", in: "query", schema: { type: "string" } },
+            { name: "companyId", in: "query", schema: { type: "string" } },
+            { name: "isActive", in: "query", schema: { type: "boolean" } },
+            { name: "make", in: "query", schema: { type: "string" } },
+            { name: "model", in: "query", schema: { type: "string" } },
+            { name: "year", in: "query", schema: { type: "integer" } },
+          ],
+          responses: {
+            200: { description: "List of cars" },
+            500: { description: "Error" },
+          },
+        },
+        post: {
+          tags: ["Cars"],
+          summary: "Create a new car",
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["make", "model", "year", "licensePlate"],
+                  properties: {
+                    userId: { type: "string", description: "Admin only - assign to specific user" },
+                    companyId: { type: "string" },
+                    make: { type: "string" },
+                    model: { type: "string" },
+                    year: { type: "integer" },
+                    color: { type: "string" },
+                    licensePlate: { type: "string" },
+                    vin: { type: "string" },
+                    batteryCapacity: { type: "number" },
+                    range: { type: "number" },
+                    chargingPort: { type: "string", enum: ["Type 1", "Type 2", "CCS", "CHAdeMO", "Tesla", "Other"] },
+                    notes: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            201: { description: "Car created" },
+            400: { description: "Validation error" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/cars/my-cars": {
+        get: {
+          tags: ["Cars"],
+          summary: "Get cars for the authenticated user",
+          security: [{ bearerAuth: [] }],
+          responses: {
+            200: { description: "User's cars" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/cars/stats": {
+        get: {
+          tags: ["Cars"],
+          summary: "Get car statistics",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "userId", in: "query", schema: { type: "string" } },
+            { name: "companyId", in: "query", schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "Car statistics" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/cars/user/{userId}": {
+        get: {
+          tags: ["Cars"],
+          summary: "Get cars for a specific user",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "userId", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "User's cars" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/cars/company/{companyId}": {
+        get: {
+          tags: ["Cars"],
+          summary: "Get cars for a specific company",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "companyId", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "Company's cars" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/cars/license-plate/{licensePlate}": {
+        get: {
+          tags: ["Cars"],
+          summary: "Get car by license plate",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "licensePlate", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "Car details" },
+            404: { description: "Car not found" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/cars/{carId}": {
+        get: {
+          tags: ["Cars"],
+          summary: "Get a specific car by ID",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "carId", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "Car details" },
+            403: { description: "Access denied" },
+            404: { description: "Car not found" },
+            500: { description: "Error" },
+          },
+        },
+        put: {
+          tags: ["Cars"],
+          summary: "Update a car",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "carId", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    make: { type: "string" },
+                    model: { type: "string" },
+                    year: { type: "integer" },
+                    color: { type: "string" },
+                    licensePlate: { type: "string" },
+                    vin: { type: "string" },
+                    batteryCapacity: { type: "number" },
+                    range: { type: "number" },
+                    chargingPort: { type: "string" },
+                    notes: { type: "string" },
+                    isActive: { type: "boolean" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: "Car updated" },
+            403: { description: "Access denied" },
+            404: { description: "Car not found" },
+            500: { description: "Error" },
+          },
+        },
+        delete: {
+          tags: ["Cars"],
+          summary: "Delete a car (admin only)",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "carId", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "Car deleted" },
+            404: { description: "Car not found" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/cars/{carId}/deactivate": {
+        post: {
+          tags: ["Cars"],
+          summary: "Deactivate a car",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "carId", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "Car deactivated" },
+            403: { description: "Access denied" },
+            404: { description: "Car not found" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/cars/{carId}/activate": {
+        post: {
+          tags: ["Cars"],
+          summary: "Activate a car",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "carId", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "Car activated" },
+            403: { description: "Access denied" },
+            404: { description: "Car not found" },
+            500: { description: "Error" },
+          },
+        },
+      },
       "/users/listAllUsers": {
         get: {
           tags: ["Users"],
