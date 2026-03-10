@@ -87,6 +87,12 @@ node scripts/demo-data/ocpp/createChargePoints.js
 # etc.
 ```
 
+### Default Login
+
+```
+Email: admin@ocppcentral.com
+Password: Demo123!
+```
 
 
 ## Dependencies
