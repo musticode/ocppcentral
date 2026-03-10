@@ -1,0 +1,19 @@
+version: '3.9'
+
+services:
+  mongodb:
+    image: mongo:latest # Use the official MongoDB image from Docker Hub
+    container_name: mongodb_container
+    restart: always
+    ports:
+      - "27017:27017" # Maps the container's port 27017 to the host's port 27017
+    volumes:
+      - mongodb_data:/data/db # Mounts a named volume to the default data directory
+    environment:
+      # Set up initial authentication for the root user
+      MONGO_INITDB_ROOT_USERNAME: rootuser
+      MONGO_INITDB_ROOT_PASSWORD: securepassword
+      MONGO_INITDB_DATABASE: mydatabase
+
+volumes:
+  mongodb_data: # Declares the named volume for data persistence
