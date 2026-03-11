@@ -82,3 +82,13 @@ curl --location 'http://localhost:3000/api/central-system/charge-points/00000001
 }'
 ```
 
+
+## Fleet Management
+
+```
+Fleet → FleetVehicle → FleetAssignment → Driver
+                    ↓
+              FleetMaintenance
+                    ↓
+              Analytics & Reports
+```

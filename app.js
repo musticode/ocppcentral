@@ -30,6 +30,11 @@ import swaggerSpec from "./configuration/swagger.js";
 import swaggerUi from "swagger-ui-express";
 import tariffRoute from "./routes/tariff.js";
 import transactionRoute from "./routes/transaction.js";
+import fleetRoute from "./routes/fleet.js";
+import fleetVehicleRoute from "./routes/fleetVehicle.js";
+import fleetAssignmentRoute from "./routes/fleetAssignment.js";
+import fleetMaintenanceRoute from "./routes/fleetMaintenance.js";
+import fleetAnalyticsRoute from "./routes/fleetAnalytics.js";
 // import indexRouter from "./routes/index.js";
 import usersRouter from "./routes/users.js"; //
 
@@ -79,6 +84,11 @@ app.use("/api/reports", reportRoute);
 app.use("/api/reservations", reservationRoute);
 app.use("/api/cars", carRoute);
 app.use("/api/id-tags", idTagRoute);
+app.use("/api/fleets", fleetRoute);
+app.use("/api/fleet-vehicles", fleetVehicleRoute);
+app.use("/api/fleet-assignments", fleetAssignmentRoute);
+app.use("/api/fleet-maintenance", fleetMaintenanceRoute);
+app.use("/api/fleet-analytics", fleetAnalyticsRoute);
 
 // Swagger API documentation
 app.use(
