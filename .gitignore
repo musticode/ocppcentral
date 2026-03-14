@@ -8,5 +8,13 @@ npm-debug.log*
 
 package-lock.json
 
+# Environment files (keep .env.example)
 .env
+.env.local
+.env.development
+.env.staging
+.env.production
+.env.test
+!.env.example
+
 .idea

@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ocppcentral-staging
+    restart: always
+    ports:
+      - "3000:3000"
+      - "8080:8080"
+    environment:
+      - NODE_ENV=staging
+    env_file:
+      - .env.staging
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - ocppcentral-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+  mongodb:
+    image: mongo:7.0
+    container_name: ocppcentral-mongodb-staging
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+      - MONGO_INITDB_DATABASE=ocppcentral_staging
+    volumes:
+      - mongodb-data-staging:/data/db
+      - mongodb-config-staging:/data/configdb
+    networks:
+      - ocppcentral-network
+    command: mongod --auth
+
+  redis:
+    image: redis:7-alpine
+    container_name: ocppcentral-redis-staging
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data-staging:/data
+    networks:
+      - ocppcentral-network
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+
+  nginx:
+    image: nginx:alpine
+    container_name: ocppcentral-nginx-staging
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/staging.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - app
+    networks:
+      - ocppcentral-network
+
+volumes:
+  mongodb-data-staging:
+  mongodb-config-staging:
+  redis-data-staging:
+
+networks:
+  ocppcentral-network:
+    driver: bridge

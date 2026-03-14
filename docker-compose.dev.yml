@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ocppcentral-dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+      - "8080:8080"
+    environment:
+      - NODE_ENV=development
+    env_file:
+      - .env.development
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - ocppcentral-network
+    command: npm run dev:watch
+
+  mongodb:
+    image: mongo:7.0
+    container_name: ocppcentral-mongodb-dev
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=ocppcentral_dev
+    volumes:
+      - mongodb-data-dev:/data/db
+    networks:
+      - ocppcentral-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: ocppcentral-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data-dev:/data
+    networks:
+      - ocppcentral-network
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: ocppcentral-mongo-express
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongodb
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=admin123
+    depends_on:
+      - mongodb
+    networks:
+      - ocppcentral-network
+
+volumes:
+  mongodb-data-dev:
+  redis-data-dev:
+
+networks:
+  ocppcentral-network:
+    driver: bridge
