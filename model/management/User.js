@@ -1,6 +1,6 @@
+import IdTag from "../ocpp/IdTag.js";
 import { Schema } from "mongoose";
 import mongoose from "mongoose";
-import IdTag from "../ocpp/IdTag.js";
 const UserSchema = new Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
@@ -8,8 +8,8 @@ const UserSchema = new Schema({
   role: {
     type: String,
     required: true,
-    enum: ["admin", "user", "company_operator"],
-    default: "user",
+    enum: ["admin", "operator", "customer"],
+    default: "customer",
   },
   companyId: { type: String }, // Optional: null for customers
   companyName: { type: String }, // Optional: null for customers

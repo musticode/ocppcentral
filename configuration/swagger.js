@@ -58,6 +58,7 @@ const options = {
       { name: "Consumption", description: "Consumption data" },
       { name: "Reservations", description: "Charge point reservations (OCPP)" },
       { name: "Cars", description: "Electric vehicle management" },
+      { name: "Payment Methods", description: "User payment method management" },
       {
         name: "Central System",
         description: "OCPP central system (charge point control)",
@@ -1596,6 +1597,253 @@ const options = {
             200: { description: "Car activated" },
             403: { description: "Access denied" },
             404: { description: "Car not found" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/payment-methods": {
+        get: {
+          tags: ["Payment Methods"],
+          summary: "List all payment methods with optional filters (admin only)",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "userId", in: "query", schema: { type: "string" } },
+            { name: "isActive", in: "query", schema: { type: "boolean" } },
+            { name: "status", in: "query", schema: { type: "string", enum: ["active", "inactive", "expired", "failed", "pending"] } },
+            { name: "type", in: "query", schema: { type: "string", enum: ["credit_card", "debit_card", "bank_account", "paypal", "stripe", "other"] } },
+            { name: "provider", in: "query", schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "List of payment methods" },
+            500: { description: "Error" },
+          },
+        },
+        post: {
+          tags: ["Payment Methods"],
+          summary: "Create a new payment method",
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["type", "provider"],
+                  properties: {
+                    userId: { type: "string", description: "Admin only - assign to specific user" },
+                    type: { type: "string", enum: ["credit_card", "debit_card", "bank_account", "paypal", "stripe", "other"] },
+                    provider: { type: "string", enum: ["stripe", "paypal", "square", "manual", "other"] },
+                    cardLast4: { type: "string", pattern: "^\\d{4}$" },
+                    cardBrand: { type: "string", enum: ["visa", "mastercard", "amex", "discover", "other"] },
+                    cardExpMonth: { type: "integer", minimum: 1, maximum: 12 },
+                    cardExpYear: { type: "integer" },
+                    bankAccountLast4: { type: "string", pattern: "^\\d{4}$" },
+                    bankName: { type: "string" },
+                    paypalEmail: { type: "string", format: "email" },
+                    externalId: { type: "string" },
+                    externalCustomerId: { type: "string" },
+                    isActive: { type: "boolean" },
+                    isVerified: { type: "boolean" },
+                    isDefault: { type: "boolean" },
+                    billingAddress: {
+                      type: "object",
+                      properties: {
+                        street: { type: "string" },
+                        city: { type: "string" },
+                        state: { type: "string" },
+                        zipCode: { type: "string" },
+                        country: { type: "string" },
+                      },
+                    },
+                    metadata: { type: "object" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            201: { description: "Payment method created" },
+            400: { description: "Validation error" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/payment-methods/my-methods": {
+        get: {
+          tags: ["Payment Methods"],
+          summary: "Get payment methods for the authenticated user",
+          security: [{ bearerAuth: [] }],
+          responses: {
+            200: { description: "User's payment methods" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/payment-methods/active": {
+        get: {
+          tags: ["Payment Methods"],
+          summary: "Get active payment method for the authenticated user",
+          security: [{ bearerAuth: [] }],
+          responses: {
+            200: { description: "Active payment method" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/payment-methods/check-payment": {
+        get: {
+          tags: ["Payment Methods"],
+          summary: "Check if user has active payment method and charging eligibility",
+          security: [{ bearerAuth: [] }],
+          responses: {
+            200: { description: "Payment status check result" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/payment-methods/stats": {
+        get: {
+          tags: ["Payment Methods"],
+          summary: "Get payment method statistics (admin only)",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "userId", in: "query", schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "Payment method statistics" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/payment-methods/user/{userId}": {
+        get: {
+          tags: ["Payment Methods"],
+          summary: "Get payment methods for a specific user (admin only)",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "userId", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "User's payment methods" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/payment-methods/expire-old": {
+        post: {
+          tags: ["Payment Methods"],
+          summary: "Mark expired payment methods as expired (admin only)",
+          security: [{ bearerAuth: [] }],
+          responses: {
+            200: { description: "Expired payment methods count" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/payment-methods/{paymentMethodId}": {
+        get: {
+          tags: ["Payment Methods"],
+          summary: "Get a specific payment method by ID",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "paymentMethodId", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "Payment method details" },
+            403: { description: "Access denied" },
+            404: { description: "Payment method not found" },
+            500: { description: "Error" },
+          },
+        },
+        put: {
+          tags: ["Payment Methods"],
+          summary: "Update a payment method",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "paymentMethodId", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    cardExpMonth: { type: "integer", minimum: 1, maximum: 12 },
+                    cardExpYear: { type: "integer" },
+                    billingAddress: { type: "object" },
+                    isDefault: { type: "boolean" },
+                    metadata: { type: "object" },
+                    status: { type: "string", enum: ["active", "inactive", "expired", "failed", "pending"] },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: "Payment method updated" },
+            403: { description: "Access denied" },
+            404: { description: "Payment method not found" },
+            500: { description: "Error" },
+          },
+        },
+        delete: {
+          tags: ["Payment Methods"],
+          summary: "Delete a payment method",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "paymentMethodId", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "Payment method deleted" },
+            403: { description: "Access denied" },
+            404: { description: "Payment method not found" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/payment-methods/{paymentMethodId}/set-active": {
+        post: {
+          tags: ["Payment Methods"],
+          summary: "Set a payment method as active",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "paymentMethodId", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "Payment method set as active" },
+            403: { description: "Access denied" },
+            404: { description: "Payment method not found" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/payment-methods/{paymentMethodId}/verify": {
+        post: {
+          tags: ["Payment Methods"],
+          summary: "Verify a payment method (admin only)",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "paymentMethodId", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "Payment method verified" },
+            404: { description: "Payment method not found" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/payment-methods/{paymentMethodId}/deactivate": {
+        post: {
+          tags: ["Payment Methods"],
+          summary: "Deactivate a payment method",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "paymentMethodId", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "Payment method deactivated" },
+            403: { description: "Access denied" },
+            404: { description: "Payment method not found" },
             500: { description: "Error" },
           },
         },

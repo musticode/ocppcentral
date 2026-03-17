@@ -1,3 +1,5 @@
+import PaymentMethod from "../../model/management/PaymentMethod.js";
+import User from "../../model/management/User.js";
 import ocppHandler from "./ocppHandler.js";
 
 /** Default timeout for OCPP calls (ms). Remote start IdTag typically times out after 120s on the charger side. */
@@ -112,6 +114,20 @@ export async function remoteStartTransaction(chargePointId, options) {
   if (connectorId != null) {
     params.connectorId = Number(connectorId);
   }
+
+  const user = await User.findOne({ idTag });
+  if (!user) {
+    throw new Error("User not found");
+  }
+  const activePaymentMethod = await PaymentMethod.findOne({ userId: user._id, isActive: true });
+  
+  if (!activePaymentMethod) {
+    throw new Error("No active payment method found for user");
+  }
+
+  // create transaction in db
+  // check user has 
+
   return call(chargePointId, "RemoteStartTransaction", params);
 }
 

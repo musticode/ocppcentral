@@ -1,5 +1,6 @@
 import centralSystemService from "../service/ocpp/centralSystemService.js";
 import express from "express";
+import { validatePaymentForCharging } from "../middleware/paymentValidationMiddleware.js";
 
 const router = express.Router({ mergeParams: true });
 
@@ -90,6 +91,7 @@ router.get("/get-configuration", async (req, res) => {
 router.post("/remote-start-transaction", async (req, res) => {
   let validationError = null;
   try {
+    console.log("Remote start transaction");
     const chargePointId = getChargePointId(req);
     const { idTag, connectorId } = req.body ?? {};
     if (!idTag) validationError = new Error("idTag is required");
