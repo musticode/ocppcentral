@@ -79,7 +79,7 @@ npm run start:production
 
 ```bash
 # Local MongoDB
-MONGO_URI=mongodb://localhost:27017/ocppcentral_dev
+MONGO_URI=mongodb://rootuser:securepassword@localhost:27017/ocppcentral?authSource=admin
 
 # MongoDB with authentication
 MONGO_URI=mongodb://username:password@localhost:27017/ocppcentral_dev
