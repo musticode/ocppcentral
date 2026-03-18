@@ -1,13 +1,14 @@
 import { RPCServer, createRPCError } from "ocpp-rpc";
-import authorize from "./authorize.js";
-import { v4 as uuidv4 } from "uuid";
+
 import ChargePoint from "../../model/ocpp/ChargePoint.js";
 import Heartbeat from "../../model/ocpp/Heartbeat.js";
-import transactionService from "../management/transactionService.js";
+import authorize from "./authorize.js";
 import chargePointService from "../management/chargePointService.js";
-import statusNotificationService from "./statusNotificationService.js";
-import { createMeterValueFromOCPP } from "./meterValueService.js";
 import { createConsumptionFromTransaction } from "../management/consumptionService.js";
+import { createMeterValueFromOCPP } from "./meterValueService.js";
+import statusNotificationService from "./statusNotificationService.js";
+import transactionService from "../management/transactionService.js";
+import { v4 as uuidv4 } from "uuid";
 
 // Store connected clients
 const connectedClients = new Map();
@@ -67,22 +68,34 @@ server.on("client", async (client) => {
     transactions: [],
   });
 
+  const identity = client.identity;
+
   let chargePoint = await ChargePoint.findOne({
-    identifier: client.identity,
+    $or: [{ identifier: identity }, { chargePointId: chargePointId }],
   });
 
   if (!chargePoint) {
-    // create a new charge point
-    chargePoint = await ChargePoint.create({
-      identifier: client.identity,
-      chargePointId: chargePointId,
-    });
+    chargePoint = await ChargePoint.findOneAndUpdate(
+      { chargePointId: chargePointId },
+      {
+        $setOnInsert: {
+          chargePointId: chargePointId,
+        },
+        $set: {
+          identifier: identity,
+          connectedAt: new Date(),
+          lastHeartbeat: new Date(),
+          connectionStatus: "Connected",
+          sessionId: uuidv4(),
+        },
+      },
+      { new: true, upsert: true }
+    );
   } else {
-    // update the charge point
     chargePoint.connectedAt = new Date();
     chargePoint.lastHeartbeat = new Date();
     chargePoint.connectionStatus = "Connected";
-    chargePoint.identifier = client.identity;
+    chargePoint.identifier = identity;
     chargePoint.sessionId = uuidv4();
     await chargePoint.save();
   }

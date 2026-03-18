@@ -1,13 +1,10 @@
-import mongoose from "mongoose";
 import ChargePoint from "../../../model/ocpp/ChargePoint.js";
 import Company from "../../../model/management/Company.js";
 import Location from "../../../model/management/Location.js";
-import connectDB from "../../../configuration/db.js";
+import mongoose from "mongoose";
 
 const createDemoChargePoints = async () => {
   try {
-    await connectDB();
-
     const companies = await Company.find({});
     const locations = await Location.find({});
 
@@ -158,12 +155,27 @@ const createDemoChargePoints = async () => {
       },
     ];
 
-    await ChargePoint.deleteMany({});
-    const createdChargePoints = await ChargePoint.insertMany(demoChargePoints);
+    const ops = demoChargePoints.map((cp) => ({
+      updateOne: {
+        filter: { chargePointId: cp.chargePointId },
+        update: { $set: cp },
+        upsert: true,
+      },
+    }));
 
-    console.log(`✅ Created ${createdChargePoints.length} demo charge points`);
+    const result = await ChargePoint.bulkWrite(ops, { ordered: false });
+    const count = await ChargePoint.countDocuments({
+      chargePointId: { $in: demoChargePoints.map((c) => c.chargePointId) },
+    });
 
-    return createdChargePoints;
+    console.log(
+      `✅ Demo charge points upserted. matched=${result.matchedCount}, modified=${result.modifiedCount}, upserted=${result.upsertedCount}`
+    );
+    console.log(`✅ Total demo charge points present: ${count}`);
+
+    return await ChargePoint.find({
+      chargePointId: { $in: demoChargePoints.map((c) => c.chargePointId) },
+    });
   } catch (error) {
     console.error("Error creating demo charge points:", error);
     throw error;
