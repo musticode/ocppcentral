@@ -26,6 +26,14 @@ import createDemoStatusNotifications from "./ocpp/createStatusNotifications.js";
 import createDemoTariffs from "./management/createTariffs.js";
 import createDemoTransactions from "./ocpp/createTransactions.js";
 import createDemoUsers from "./management/createUsers.js";
+import dotenv from "dotenv";
+
+const nodeEnv = process.env.NODE_ENV || "development";
+const dotenvPath =
+  process.env.DOTENV_CONFIG_PATH ||
+  (nodeEnv ? `.env.${nodeEnv}` : ".env");
+
+dotenv.config({ path: dotenvPath });
 
 const createAllDemoData = async () => {
   console.log("🚀 Starting demo data creation for OCPP Central...\n");

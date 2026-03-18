@@ -17,7 +17,7 @@ const fleetVehicleSchema = new mongoose.Schema(
     vehicleNumber: {
       type: String,
       required: true,
-      index: true,
+      unique: true,
     },
     assignedDriverId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -93,7 +93,6 @@ const fleetVehicleSchema = new mongoose.Schema(
 fleetVehicleSchema.index({ fleetId: 1, status: 1 });
 fleetVehicleSchema.index({ fleetId: 1, isActive: 1 });
 fleetVehicleSchema.index({ assignedDriverId: 1, status: 1 });
-fleetVehicleSchema.index({ vehicleNumber: 1 }, { unique: true });
 
 const FleetVehicle = mongoose.model("FleetVehicle", fleetVehicleSchema);
 

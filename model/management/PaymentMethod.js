@@ -136,7 +136,7 @@ PaymentMethodSchema.virtual("displayName").get(function () {
 PaymentMethodSchema.set("toJSON", { virtuals: true });
 PaymentMethodSchema.set("toObject", { virtuals: true });
 
-PaymentMethodSchema.pre("save", async function (next) {
+PaymentMethodSchema.pre("save", async function () {
   if (this.isModified("isActive") && this.isActive) {
     await this.constructor.updateMany(
       { userId: this.userId, _id: { $ne: this._id } },
@@ -152,8 +152,6 @@ PaymentMethodSchema.pre("save", async function (next) {
       this.isActive = false;
     }
   }
-  
-  next();
 });
 
 export default mongoose.model("PaymentMethod", PaymentMethodSchema);
