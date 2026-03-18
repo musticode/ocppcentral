@@ -11,6 +11,7 @@ The demo data creation scripts are organized into two main categories:
 - **Companies** - Charging network operators
 - **Locations** - Physical charging station locations
 - **Cars** - Electric vehicles registered in the system
+- **Fleets** - Company fleets, vehicles, assignments, and maintenance
 - **Pricing** - General pricing plans
 - **Tariffs** - Connector-specific pricing
 - **Consumptions** - Energy consumption records
@@ -52,6 +53,10 @@ node scripts/demo-data/management/createUsers.js
 node scripts/demo-data/management/createCompanies.js
 node scripts/demo-data/management/createLocations.js
 node scripts/demo-data/management/createCars.js
+node scripts/demo-data/management/createFleets.js
+node scripts/demo-data/management/createFleetVehicles.js
+node scripts/demo-data/management/createFleetAssignments.js
+node scripts/demo-data/management/createFleetMaintenance.js
 node scripts/demo-data/management/createPricing.js
 node scripts/demo-data/management/createTariffs.js
 node scripts/demo-data/management/createConsumptions.js
@@ -109,6 +114,10 @@ The scripts follow this dependency order:
    - Connectors (depends on ChargePoints)
    - IdTags (depends on Users, Companies)
    - Cars (depends on Users, Companies)
+   - Fleets (depends on Companies, Users)
+   - FleetVehicles (depends on Fleets, Cars)
+   - FleetAssignments (depends on Fleets, FleetVehicles, Users)
+   - FleetMaintenance (depends on Fleets, FleetVehicles)
    - Pricing (depends on Users)
    - Tariffs (depends on ChargePoints, Companies)
 
@@ -154,6 +163,10 @@ The scripts create approximately:
 - 3 Companies
 - 5 Locations
 - 7 Cars
+- 3 Fleets
+- ~6 Fleet Vehicles
+- ~6 Fleet Assignments
+- ~6 Fleet Maintenance records
 - 5 Pricing Plans
 - ~15 Tariffs
 - 6 Charge Points

@@ -1,7 +1,7 @@
-import mongoose from "mongoose";
-import bcrypt from "bcrypt";
 import User from "../../../model/management/User.js";
+import bcrypt from "bcryptjs";
 import connectDB from "../../../configuration/db.js";
+import mongoose from "mongoose";
 
 const createDemoUsers = async () => {
   try {
@@ -22,7 +22,7 @@ const createDemoUsers = async () => {
         name: "John Doe",
         email: "john.doe@example.com",
         password: hashedPassword,
-        role: "user",
+        role: "customer",
         companyId: null,
         companyName: null,
       },
@@ -30,7 +30,7 @@ const createDemoUsers = async () => {
         name: "Jane Smith",
         email: "jane.smith@example.com",
         password: hashedPassword,
-        role: "user",
+        role: "customer",
         companyId: null,
         companyName: null,
       },
@@ -38,7 +38,7 @@ const createDemoUsers = async () => {
         name: "Company Operator",
         email: "operator@greencharge.com",
         password: hashedPassword,
-        role: "company_operator",
+        role: "operator",
         companyId: "company_001",
         companyName: "GreenCharge Solutions",
       },
@@ -46,7 +46,7 @@ const createDemoUsers = async () => {
         name: "Fleet Manager",
         email: "fleet@evfleet.com",
         password: hashedPassword,
-        role: "company_operator",
+        role: "operator",
         companyId: "company_002",
         companyName: "EV Fleet Services",
       },
@@ -54,7 +54,7 @@ const createDemoUsers = async () => {
         name: "Alice Johnson",
         email: "alice.johnson@example.com",
         password: hashedPassword,
-        role: "user",
+        role: "customer",
         companyId: null,
         companyName: null,
       },
@@ -62,7 +62,7 @@ const createDemoUsers = async () => {
         name: "Bob Williams",
         email: "bob.williams@example.com",
         password: hashedPassword,
-        role: "user",
+        role: "customer",
         companyId: null,
         companyName: null,
       },

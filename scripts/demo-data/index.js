@@ -1,28 +1,31 @@
 import connectDB from "../../configuration/db.js";
-
-import createDemoUsers from "./management/createUsers.js";
-import createDemoCompanies from "./management/createCompanies.js";
-import createDemoLocations from "./management/createLocations.js";
-import createDemoCars from "./management/createCars.js";
-import createDemoPricing from "./management/createPricing.js";
-import createDemoNotifications from "./management/createNotifications.js";
-
-import createDemoChargePoints from "./ocpp/createChargePoints.js";
-import createDemoConnectors from "./ocpp/createConnectors.js";
-import createDemoIdTags from "./ocpp/createIdTags.js";
-import createDemoTariffs from "./management/createTariffs.js";
-import createDemoTransactions from "./ocpp/createTransactions.js";
 import createDemoAuthorizations from "./ocpp/createAuthorizations.js";
 import createDemoBootNotifications from "./ocpp/createBootNotifications.js";
-import createDemoHeartbeats from "./ocpp/createHeartbeats.js";
-import createDemoMeterValues from "./ocpp/createMeterValues.js";
-import createDemoStatusNotifications from "./ocpp/createStatusNotifications.js";
-import createDemoReservations from "./ocpp/createReservations.js";
+import createDemoCars from "./management/createCars.js";
+import createDemoChargePoints from "./ocpp/createChargePoints.js";
+import createDemoCompanies from "./management/createCompanies.js";
+import createDemoConnectors from "./ocpp/createConnectors.js";
 import createDemoConsumptions from "./management/createConsumptions.js";
-import createDemoPayments from "./management/createPayments.js";
-import createDemoReports from "./management/createReports.js";
 import createDemoDiagnostics from "./ocpp/createDiagnostics.js";
 import createDemoFirmwareUpdates from "./ocpp/createFirmwareUpdates.js";
+import createDemoFleetAssignments from "./management/createFleetAssignments.js";
+import createDemoFleetMaintenance from "./management/createFleetMaintenance.js";
+import createDemoFleetVehicles from "./management/createFleetVehicles.js";
+import createDemoFleets from "./management/createFleets.js";
+import createDemoHeartbeats from "./ocpp/createHeartbeats.js";
+import createDemoIdTags from "./ocpp/createIdTags.js";
+import createDemoLocations from "./management/createLocations.js";
+import createDemoMeterValues from "./ocpp/createMeterValues.js";
+import createDemoNotifications from "./management/createNotifications.js";
+import createDemoPaymentMethods from "./management/createPaymentMethods.js";
+import createDemoPayments from "./management/createPayments.js";
+import createDemoPricing from "./management/createPricing.js";
+import createDemoReports from "./management/createReports.js";
+import createDemoReservations from "./ocpp/createReservations.js";
+import createDemoStatusNotifications from "./ocpp/createStatusNotifications.js";
+import createDemoTariffs from "./management/createTariffs.js";
+import createDemoTransactions from "./ocpp/createTransactions.js";
+import createDemoUsers from "./management/createUsers.js";
 
 const createAllDemoData = async () => {
   console.log("🚀 Starting demo data creation for OCPP Central...\n");
@@ -37,16 +40,24 @@ const createAllDemoData = async () => {
     await createDemoLocations();
     await createDemoCars();
     await createDemoPricing();
+    await createDemoPaymentMethods();
     await createDemoNotifications();
 
-    console.log("\n⚡ Step 2: Creating OCPP Infrastructure");
+    console.log("\n🚚 Step 2: Creating Fleet Data");
+    console.log("=====================================");
+    await createDemoFleets();
+    await createDemoFleetVehicles();
+    await createDemoFleetAssignments();
+    await createDemoFleetMaintenance();
+
+    console.log("\n⚡ Step 3: Creating OCPP Infrastructure");
     console.log("=====================================");
     await createDemoChargePoints();
     await createDemoConnectors();
     await createDemoIdTags();
     await createDemoTariffs();
 
-    console.log("\n🔋 Step 3: Creating OCPP Operations");
+    console.log("\n🔋 Step 4: Creating OCPP Operations");
     console.log("=====================================");
     await createDemoTransactions();
     await createDemoAuthorizations();
@@ -56,13 +67,13 @@ const createAllDemoData = async () => {
     await createDemoStatusNotifications();
     await createDemoReservations();
 
-    console.log("\n💰 Step 4: Creating Billing & Reports");
+    console.log("\n💰 Step 5: Creating Billing & Reports");
     console.log("=====================================");
     await createDemoConsumptions();
     await createDemoPayments();
     await createDemoReports();
 
-    console.log("\n🔧 Step 5: Creating Maintenance Data");
+    console.log("\n🔧 Step 6: Creating Maintenance Data");
     console.log("=====================================");
     await createDemoDiagnostics();
     await createDemoFirmwareUpdates();
