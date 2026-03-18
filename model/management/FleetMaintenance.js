@@ -112,11 +112,13 @@ const fleetMaintenanceSchema = new mongoose.Schema(
 
 fleetMaintenanceSchema.index({ fleetId: 1, status: 1 });
 fleetMaintenanceSchema.index({ fleetVehicleId: 1, status: 1 });
-fleetMaintenanceSchema.index({ scheduledDate: 1 });
 fleetMaintenanceSchema.index({ status: 1, priority: 1 });
 
 fleetMaintenanceSchema.pre("save", function (next) {
   this.totalCost = (this.laborCost || 0) + (this.partsCost || 0);
+  if (!this.maintenanceId) {
+    this.maintenanceId = `MAINT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  }
   next();
 });
 

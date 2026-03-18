@@ -92,6 +92,12 @@ node scripts/demo-data/ocpp/createChargePoints.js
 # etc.
 ```
 
+### Creating demo data for environment:
+
+```bash
+NODE_ENV=development node scripts/demo-data/index.js
+```
+
 ### Default Login
 
 ```

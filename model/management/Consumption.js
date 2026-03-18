@@ -48,9 +48,6 @@ const consumptionSchema = new mongoose.Schema(
 // Indexes for efficient querying
 consumptionSchema.index({ chargePointId: 1, timestamp: -1 });
 consumptionSchema.index({ idTag: 1, timestamp: -1 });
-consumptionSchema.index({ transactionId: 1 });
-consumptionSchema.index({ pricingId: 1 });
-consumptionSchema.index({ tariffId: 1 });
 
 // Pre-save hook to calculate energy consumed and costs (async for Mongoose 7+)
 consumptionSchema.pre("save", async function () {

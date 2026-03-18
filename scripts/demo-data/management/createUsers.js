@@ -1,12 +1,8 @@
 import User from "../../../model/management/User.js";
 import bcrypt from "bcryptjs";
-import connectDB from "../../../configuration/db.js";
-import mongoose from "mongoose";
 
 const createDemoUsers = async () => {
   try {
-    await connectDB();
-
     const hashedPassword = await bcrypt.hash("Demo123!", 10);
 
     const demoUsers = [

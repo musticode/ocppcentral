@@ -76,7 +76,6 @@ const carSchema = new mongoose.Schema(
 
 carSchema.index({ userId: 1, isActive: 1 });
 carSchema.index({ companyId: 1, isActive: 1 });
-carSchema.index({ licensePlate: 1 });
 
 const Car = mongoose.model("Car", carSchema);
 
