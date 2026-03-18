@@ -5,6 +5,10 @@
 
 import swaggerJsdoc from "swagger-jsdoc";
 
+const swaggerBaseUrl =
+  process.env.SWAGGER_BASE_URL ||
+  `http://localhost:${process.env.PORT || 3000}`;
+
 const options = {
   definition: {
     openapi: "3.0.3",
@@ -16,8 +20,8 @@ const options = {
     },
     servers: [
       {
-        url: "http://localhost:3000",
-        description: "Development server",
+        url: swaggerBaseUrl,
+        description: "API server",
       },
     ],
     components: {
@@ -58,14 +62,33 @@ const options = {
       { name: "Consumption", description: "Consumption data" },
       { name: "Reservations", description: "Charge point reservations (OCPP)" },
       { name: "Cars", description: "Electric vehicle management" },
+      { name: "Payments", description: "Payments" },
       { name: "Payment Methods", description: "User payment method management" },
+      { name: "Notifications", description: "Notifications" },
+      { name: "Reports", description: "Reports" },
+      { name: "ID Tags", description: "RFID / IdTag management" },
+      { name: "Fleets", description: "Fleet management" },
+      { name: "Fleet Vehicles", description: "Fleet vehicle management" },
+      { name: "Fleet Assignments", description: "Fleet assignments" },
+      { name: "Fleet Maintenance", description: "Fleet maintenance" },
+      { name: "Fleet Analytics", description: "Fleet analytics" },
       {
         name: "Central System",
         description: "OCPP central system (charge point control)",
       },
       { name: "Users", description: "User management" },
+      { name: "Health", description: "Health checks" },
     ],
     paths: {
+      "/health": {
+        get: {
+          tags: ["Health"],
+          summary: "Health check",
+          responses: {
+            200: { description: "OK" },
+          },
+        },
+      },
       "/api/auth/login": {
         post: {
           tags: ["Auth"],
@@ -233,21 +256,6 @@ const options = {
             500: { description: "Error" },
           },
         },
-      },
-      "/api/charge-points/createChargePoint": {
-        post: {
-          tags: ["Charge Points"],
-          summary: "Create charge point",
-          requestBody: {
-            content: { "application/json": { schema: { type: "object" } } },
-          },
-          responses: {
-            200: { description: "Created" },
-            500: { description: "Error" },
-          },
-        },
-      },
-      "/api/charge-points/{id}": {
         put: {
           tags: ["Charge Points"],
           summary: "Update charge point",
@@ -281,6 +289,19 @@ const options = {
           responses: {
             200: { description: "Deleted" },
             404: { description: "Charge point not found" },
+          },
+        },
+      },
+      "/api/charge-points/createChargePoint": {
+        post: {
+          tags: ["Charge Points"],
+          summary: "Create charge point",
+          requestBody: {
+            content: { "application/json": { schema: { type: "object" } } },
+          },
+          responses: {
+            200: { description: "Created" },
+            500: { description: "Error" },
           },
         },
       },
