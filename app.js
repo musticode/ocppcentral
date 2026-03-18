@@ -67,6 +67,10 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
+app.get("/health", (req, res) => {
+  return res.status(200).json({ status: "ok" });
+});
+
 // app.use("/", indexRouter);
 app.use("/users", usersRouter); //
 // app.use("/api", apiRouter);
