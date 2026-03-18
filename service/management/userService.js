@@ -1,7 +1,7 @@
-import User from "../../model/management/User.js";
 import Company from "../../model/management/Company.js";
 import IdTag from "../../model/ocpp/IdTag.js";
 import Pricing from "../../model/management/Pricing.js";
+import User from "../../model/management/User.js";
 import { getActivePricingForUser } from "./pricingService.js";
 
 export const createUser = async (userData) => {
@@ -141,8 +141,19 @@ export const canUserAuthenticate = async (userId) => {
 
   // User has company
   if (user.companyId) {
-    // Must have idTag to authenticate
-    return user.IdTag && user.IdTag.length > 0;
+    // Must have an idTag to authenticate.
+    // Some data flows link tags via IdTag.userId without pushing tag IDs into user.IdTag.
+    // Treat that as authorized as well.
+    if (user.IdTag && user.IdTag.length > 0) {
+      return true;
+    }
+
+    const hasLinkedTag = await IdTag.exists({
+      userId: user._id,
+      isActive: true,
+      status: { $ne: "Blocked" },
+    });
+    return Boolean(hasLinkedTag);
   }
 
   // Customer (no company) - check if they have pricing
