@@ -86,7 +86,13 @@ class IdTagService {
 
   async listIdTags({ companyId, userId, isActive } = {}) {
     const query = {};
-    if (companyId) query.companyId = companyId;
+
+    if (companyId) {
+      const company = await Company.findOne({ id: companyId }).select("_id");
+      if (!company) throw new Error(`Company ${companyId} not found`);
+      query.companyId = company._id;
+    }
+
     if (userId) query.userId = userId;
     if (isActive !== undefined) query.isActive = isActive;
 

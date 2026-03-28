@@ -1,4 +1,5 @@
 import ChargePoint from "../../model/ocpp/ChargePoint.js";
+import Company from "../../model/management/Company.js";
 import Connector from "../../model/ocpp/Connector.js";
 
 export class ChargePointService {
@@ -34,9 +35,13 @@ export class ChargePointService {
       throw new Error("Company ID is required");
     }
 
+    const company = await Company.findOne({ id: companyId }).select("_id");
+    if (!company) {
+      throw new Error(`Company ${companyId} not found`);
+    }
+
     return await this.chargePoint
-      .find({ companyId: companyId })
-      //.populate("locationId")
+      .find({ companyId: company._id })
       .populate("companyId");
   }
 

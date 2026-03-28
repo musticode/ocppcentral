@@ -57,7 +57,13 @@ class FleetService {
 
   async listFleets({ companyId, managerId, status, fleetType } = {}) {
     const query = {};
-    if (companyId) query.companyId = companyId;
+
+    if (companyId) {
+      const company = await Company.findOne({ id: companyId }).select("_id");
+      if (!company) throw new Error(`Company ${companyId} not found`);
+      query.companyId = company._id;
+    }
+
     if (managerId) query.managerId = managerId;
     if (status) query.status = status;
     if (fleetType) query.fleetType = fleetType;
@@ -149,8 +155,8 @@ class FleetService {
     const batteryLevels = vehicles
       .filter((v) => v.batteryStatus?.currentLevel)
       .map((v) => v.batteryStatus.currentLevel);
-    const avgBatteryLevel = batteryLevels.length > 0 
-      ? batteryLevels.reduce((a, b) => a + b, 0) / batteryLevels.length 
+    const avgBatteryLevel = batteryLevels.length > 0
+      ? batteryLevels.reduce((a, b) => a + b, 0) / batteryLevels.length
       : 0;
 
     const lowBatteryVehicles = vehicles.filter(
@@ -175,7 +181,7 @@ class FleetService {
   async getFleetsByCompany(companyId) {
     if (!companyId) throw new Error("Company ID is required");
 
-    const company = await Company.findById(companyId);
+    const company = await Company.findOne({ id: companyId }).select("_id");
     if (!company) throw new Error("Company not found");
 
     return await this.listFleets({ companyId });
