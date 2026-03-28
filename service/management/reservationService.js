@@ -239,6 +239,12 @@ class ReservationService {
       .lean();
   }
 
+  async getCompanyReservations(companyId) {
+    const reservations = await this.listReservations({ companyId });
+    console.log("reservations", reservations);
+    return reservations;
+  }
+
   /**
    * Get active reservation for a specific connector
    * @param {string} chargePointId - Charge point identifier

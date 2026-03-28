@@ -2,6 +2,7 @@ import express from "express";
 import {
   getAllUsers,
   createNewUser,
+  getUsersByCompanyId,
 } from "../service/management/userService.js";
 
 const router = express.Router();
@@ -25,6 +26,23 @@ router.get("/listAllUsers", async (req, res) => {
     });
   }
 });
+
+router.get("/fetchCompanyUsers", async (req, res) => {
+  try {
+    const companyId = req.query.companyId;
+    const users = await getUsersByCompanyId(companyId);
+    res.json({
+      success: true,
+      data: users,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
 
 router.post("/createNewUser", async (req, res) => {
   try {

@@ -7,7 +7,24 @@ const router = express.Router();
 // List all locations - must be before /:id to avoid conflict
 router.get("/listAllLocations", async (req, res) => {
   try {
-    const locations = await locationService.getAllLocations();
+    const companyId = req.query.companyId;
+    const locations = await locationService.getLocationsByCompanyId(companyId);
+    res.json({
+      success: true,
+      data: locations,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+router.get("/fetchCompanyLocations", async (req, res) => {
+  try {
+    const companyId = req.query.companyId;
+    const locations = await locationService.getLocationsByCompanyId(companyId);
     res.json({
       success: true,
       data: locations,

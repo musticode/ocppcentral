@@ -14,6 +14,15 @@ export const getUserById = async (id) => {
   return await User.findById(id).populate("IdTag");
 };
 
+export const getUsersByCompanyId = async (companyId) => {
+
+  if (!companyId) {
+    throw new Error("No companyId provided");
+  }
+
+  return await User.find({ companyId }).lean().exec();
+}
+
 export const getAllUsers = async () => {
   console.log("getAllUsers");
   return await User.find().populate("IdTag").sort({ createdAt: -1 });

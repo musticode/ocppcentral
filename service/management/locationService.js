@@ -11,6 +11,10 @@ export class LocationService {
     return await this.location.find();
   }
 
+  async getLocationsByCompanyId(companyId) {
+    return await this.location.find({ companyId });
+  }
+
   async getLocationById(id) {
     return await this.location.findById(id);
   }
