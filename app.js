@@ -11,6 +11,7 @@ import carRoute from "./routes/car.js";
 import centralSystemRoute from "./routes/centralSystem.js";
 import chargePointRoute from "./routes/chargePointRoute.js";
 import companyRoute from "./routes/company.js";
+import config from "./config/environments.js";
 import connectDB from "./configuration/db.js";
 import consumptionRoute from "./routes/consumption.js";
 import cookieParser from "cookie-parser";
@@ -47,19 +48,27 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// CORS: allow frontend origin(s); use FRONTEND_URL in production
-const corsOptions = {
-  origin: process.env.FRONTEND_URL || [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:5173",
-  ],
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-};
-app.use(cors(corsOptions));
+// CORS: allow frontend origin(s)
+if (config.enableCors) {
+  const corsOptions = {
+    origin: [
+      process.env.FRONTEND_URL,
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "http://127.0.0.1:3000",
+      "http://127.0.0.1:5173",
+    ].filter(Boolean),
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  };
+
+  app.use(cors(corsOptions));
+  app.options("*", cors(corsOptions));
+  console.log("CORS enabled with origins:", corsOptions.origin);
+} else {
+  console.log("CORS disabled");
+}
 
 app.use(logger("dev"));
 app.use(express.json());

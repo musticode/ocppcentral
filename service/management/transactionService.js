@@ -1,3 +1,5 @@
+import Company from "../../model/management/Company.js";
+import ChargePoint from "../../model/ocpp/ChargePoint.js";
 import Transaction from "../../model/ocpp/Transaction.js";
 
 class TransactionService {
@@ -148,6 +150,35 @@ class TransactionService {
 
     await transaction.save();
     return transaction;
+  }
+
+  async fetchTransactionsByCompanyName(companyName) {
+    return await this.transaction.find({ companyName: companyName });
+  }
+
+  async fetchSessionsByCompanyId(companyId) {
+    if (!companyId) {
+      throw new Error("Company ID is required");
+    }
+
+    const company = await Company.findOne({ id: companyId }).select("_id");
+    if (!company) {
+      throw new Error(`Company ${companyId} not found`);
+    }
+
+    const chargePoints = await ChargePoint.find({ companyId: company._id })
+      .select("identifier")
+      .lean();
+
+    const identifiers = chargePoints
+      .map((cp) => cp.identifier)
+      .filter(Boolean);
+
+    if (identifiers.length === 0) {
+      return [];
+    }
+
+    return await this.transaction.find({ chargePointId: { $in: identifiers } });
   }
 
   async getAllTransactions() {

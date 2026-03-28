@@ -7,20 +7,20 @@ const __dirname = path.dirname(__filename);
 
 const loadEnvironment = () => {
   const env = process.env.NODE_ENV || 'development';
-  
+
   const envFile = `.env.${env}`;
   const envPath = path.resolve(__dirname, '..', envFile);
-  
+
   const result = dotenv.config({ path: envPath });
-  
+
   if (result.error && env !== 'production') {
     console.warn(`Warning: Could not load ${envFile}, falling back to .env`);
     dotenv.config();
   }
-  
+
   console.log(`Environment: ${env}`);
   console.log(`Loaded config from: ${envFile}`);
-  
+
   return {
     env,
     port: process.env.PORT || 3000,

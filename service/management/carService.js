@@ -68,7 +68,13 @@ class CarService {
   async listCars({ userId, companyId, isActive, make, model, year } = {}) {
     const query = {};
     if (userId) query.userId = userId;
-    if (companyId) query.companyId = companyId;
+
+    if (companyId) {
+      const company = await Company.findOne({ id: companyId }).select("_id");
+      if (!company) throw new Error(`Company ${companyId} not found`);
+      query.companyId = company._id;
+    }
+
     if (isActive !== undefined) query.isActive = isActive;
     if (make) query.make = new RegExp(make, "i");
     if (model) query.model = new RegExp(model, "i");
@@ -187,7 +193,12 @@ class CarService {
   async getCarStats(userId = null, companyId = null) {
     const query = {};
     if (userId) query.userId = userId;
-    if (companyId) query.companyId = companyId;
+
+    if (companyId) {
+      const company = await Company.findOne({ id: companyId }).select("_id");
+      if (!company) throw new Error(`Company ${companyId} not found`);
+      query.companyId = company._id;
+    }
 
     const totalCars = await Car.countDocuments(query);
     const activeCars = await Car.countDocuments({ ...query, isActive: true });

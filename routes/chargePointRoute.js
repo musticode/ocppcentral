@@ -5,8 +5,8 @@ import locationService from "../service/management/locationService.js";
 const router = express.Router();
 
 router.get("/listAllChargePoints", async (req, res) => {
+  const companyId = req.query.companyId;
   try {
-    const { companyId } = req.params;
     const chargePoints = await ChargePointService.getAllChargePoints(companyId);
     res.json({
       success: true,

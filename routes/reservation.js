@@ -32,6 +32,23 @@ router.get("/", authenticate, authorize("admin"), async (req, res) => {
   }
 });
 
+router.get('/fetchCompanyReservations', authenticate, authorize("admin"), async (req, res) => {
+  try {
+    const { companyId } = req.query;
+    const data = await reservationService.getReservationsByCompanyId(companyId);
+    return res.json({
+      success: true,
+      count: data.length,
+      data,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
 /**
  * @route   GET /api/reservations/:reservationId
  * @desc    Get a specific reservation by reservationId
