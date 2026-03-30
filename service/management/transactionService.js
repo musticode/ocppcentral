@@ -192,6 +192,48 @@ class TransactionService {
   async deleteTransaction(id) {
     return await this.transaction.findByIdAndDelete(id);
   }
+
+  async fetchCompanyEvents(companyId, limit = 200) {
+    if (!companyId) {
+      throw new Error("Company ID is required");
+    }
+
+    const company = await Company.findOne({ id: companyId }).select("_id").lean();
+
+    if (!company) {
+      throw new Error(`Company ${companyId} not found`);
+    }
+
+    const chargePoints = await ChargePoint.find({ companyId: company._id })
+      .select("chargePointId")
+      .lean();
+
+    if (chargePoints.length === 0) {
+      return [];
+    }
+
+    const chargePointIds = chargePoints.map((cp) => cp.chargePointId).filter(Boolean);
+
+    const transactions = await this.transaction
+      .find({ chargePointId: { $in: chargePointIds } })
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit));
+
+    const events = transactions.map((transaction) => {
+      return {
+        id: transaction._id,
+        chargePointId: transaction.chargePointId,
+        connectorId: transaction.connectorId,
+        type: "StartTransaction",
+        message: "Transaction started",
+        timestamp: transaction.timestamp,
+        severity: "info",
+      };
+    });
+
+    return events;
+  }
+
 }
 
 export default new TransactionService();

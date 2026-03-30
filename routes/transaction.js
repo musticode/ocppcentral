@@ -26,6 +26,26 @@ router.get("/listAllSessions", async (req, res) => {
   }
 });
 
+router.get("/events", async (req, res) => {
+  const companyId = req.query.companyId;
+  const limit = req.query.limit;
+  try {
+    const events = await TransactionService.fetchCompanyEvents(companyId, limit);
+    console.log("Events:", events);
+    console.log("Events length:", events.length);
+    console.log("Events type:", typeof events);
+    res.json({
+      success: true,
+      data: events
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
 
 router.get("/listAllTransactions", async (req, res) => {
   try {

@@ -2,17 +2,25 @@
 
 ### Starting project :
 
-```
+```bash
 npm install
 ```
 
-```
+```bash
 npm run start
+```
+
+## Run Application Hot Reload:
+
+```bash
+npm run dev:watch
 ```
 
 ## Swagger Address:
 
-- http://localhost:3000/api-docs/
+```bash
+http://localhost:3000/api-docs/
+```
 
 ## Company
 
@@ -85,7 +93,7 @@ curl --location 'http://localhost:3000/api/central-system/charge-points/00000001
 
 ## Fleet Management
 
-```
+```mermaid
 Fleet → FleetVehicle → FleetAssignment → Driver
                     ↓
               FleetMaintenance
