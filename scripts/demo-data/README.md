@@ -105,6 +105,22 @@ Email: admin@ocppcentral.com
 Password: Demo123!
 ```
 
+## Testing
+
+```bash
+npx vitest run 2>&1
+```
+
+```bash
+npm run test:watch
+```
+
+```bash
+npm test
+```
+
+
+
 
 ## Dependencies
 

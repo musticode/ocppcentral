@@ -30,6 +30,14 @@ export class ChargePointService {
     return await this.chargePoint.findById(id).populate("locationId");
   }
 
+  async getChargePointByChargePointId(chargePointId) {
+    return await this.chargePoint.findOne({ chargePointId: chargePointId });
+  }
+
+  async fetcAllChargePointsWithLocationId(locationId) {
+    return await this.chargePoint.find({ locationId: locationId });
+  }
+
   async getAllChargePoints(companyId) {
     if (!companyId) {
       throw new Error("Company ID is required");

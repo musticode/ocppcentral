@@ -42,7 +42,7 @@ const fleetSchema = new mongoose.Schema(
       default: 0,
     },
     location: {
-      address: { type: String },
+      //address: { type: String },
       city: { type: String },
       state: { type: String },
       country: { type: String },

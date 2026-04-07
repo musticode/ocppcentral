@@ -53,6 +53,7 @@ export const authenticate = async (req, res, next) => {
     // Attach user to request object
     req.user = user;
     req.userId = user._id;
+    req.userRole = user.role;
 
     next();
   } catch (error) {
@@ -86,6 +87,7 @@ export const optionalAuthenticate = async (req, res, next) => {
           if (user) {
             req.user = user;
             req.userId = user._id;
+            req.userRole = user.role;
           }
         }
       }
