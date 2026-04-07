@@ -20,10 +20,55 @@ router.get("/listAllChargePoints", async (req, res) => {
   }
 });
 
+router.get("/listAllChargePointsWithLocationId/:locationId", async (req, res) => {
+  try {
+    const { locationId } = req.params;
+    const chargePoints = await ChargePointService.fetcAllChargePointsWithLocationId(locationId);
+    res.json({
+      success: true,
+      data: chargePoints,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const chargePoint = await ChargePointService.getChargePointById(id);
+    console.log('ID:', id)
+
+    if (!id || id === 'undefined' || id === 'null') {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid charge point ID",
+      });
+    }
+
+    let chargePoint;
+    // Check if id is a valid MongoDB ObjectId (24 hex characters)
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+
+    console.log(`[ChargePoint Route] ID: ${id}, isObjectId: ${isObjectId}`);
+
+    if (isObjectId) {
+      console.log('[ChargePoint Route] Using getChargePointById');
+      chargePoint = await ChargePointService.getChargePointById(id);
+    } else {
+      console.log('[ChargePoint Route] Using getChargePointByChargePointId');
+      chargePoint = await ChargePointService.getChargePointByChargePointId(id);
+    }
+
+    if (!chargePoint) {
+      return res.status(404).json({
+        success: false,
+        error: "Charge point not found",
+      });
+    }
+
     res.json({
       success: true,
       data: chargePoint,

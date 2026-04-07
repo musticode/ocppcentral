@@ -2,7 +2,9 @@ import express from "express";
 import {
   getAllUsers,
   createNewUser,
+  getUserById,
   getUsersByCompanyId,
+  updateUser,
 } from "../service/management/userService.js";
 
 const router = express.Router();
@@ -34,6 +36,43 @@ router.get("/fetchCompanyUsers", async (req, res) => {
     res.json({
       success: true,
       data: users,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+router.get("/:id", async (req, res) => {
+  try {
+    const user = await getUserById(req.params.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+    }
+    res.json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+router.patch("/updateUser", async (req, res) => {
+
+  try {
+    const user = await updateUser(req.body.id, req.body);
+    res.json({
+      success: true,
+      data: user,
     });
   } catch (error) {
     res.status(500).json({

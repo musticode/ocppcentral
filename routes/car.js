@@ -157,7 +157,15 @@ router.get("/:carId", authenticate, async (req, res) => {
     const { carId } = req.params;
     const data = await carService.getCarById(carId);
 
-    if (req.userRole !== "admin" && data.userId.toString() !== req.userId) {
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        message: "Car not found",
+      });
+    }
+
+    const carUserId = data.userId._id ? data.userId._id.toString() : data.userId.toString();
+    if (req.userRole !== "admin" && carUserId !== req.userId.toString()) {
       return res.status(403).json({
         success: false,
         message: "Access denied",
@@ -224,7 +232,15 @@ router.put("/:carId", authenticate, async (req, res) => {
     const { carId } = req.params;
     const car = await carService.getCarById(carId);
 
-    if (req.userRole !== "admin" && car.userId._id.toString() !== req.userId) {
+    if (!car) {
+      return res.status(404).json({
+        success: false,
+        message: "Car not found",
+      });
+    }
+
+    const carUserId = car.userId._id ? car.userId._id.toString() : car.userId.toString();
+    if (req.userRole !== "admin" && carUserId !== req.userId.toString()) {
       return res.status(403).json({
         success: false,
         message: "Access denied",
@@ -255,7 +271,15 @@ router.post("/:carId/deactivate", authenticate, async (req, res) => {
     const { carId } = req.params;
     const car = await carService.getCarById(carId);
 
-    if (req.userRole !== "admin" && car.userId._id.toString() !== req.userId) {
+    if (!car) {
+      return res.status(404).json({
+        success: false,
+        message: "Car not found",
+      });
+    }
+
+    const carUserId = car.userId._id ? car.userId._id.toString() : car.userId.toString();
+    if (req.userRole !== "admin" && carUserId !== req.userId.toString()) {
       return res.status(403).json({
         success: false,
         message: "Access denied",
@@ -287,7 +311,15 @@ router.post("/:carId/activate", authenticate, async (req, res) => {
     const { carId } = req.params;
     const car = await carService.getCarById(carId);
 
-    if (req.userRole !== "admin" && car.userId._id.toString() !== req.userId) {
+    if (!car) {
+      return res.status(404).json({
+        success: false,
+        message: "Car not found",
+      });
+    }
+
+    const carUserId = car.userId._id ? car.userId._id.toString() : car.userId.toString();
+    if (req.userRole !== "admin" && carUserId !== req.userId.toString()) {
       return res.status(403).json({
         success: false,
         message: "Access denied",

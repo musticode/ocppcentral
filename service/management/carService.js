@@ -50,6 +50,17 @@ class CarService {
     return car;
   }
 
+  async fetchCompanyCars(companyId) {
+    if (!companyId) throw new Error("companyId is required");
+
+
+
+    const cars = await Car.find({ companyId })
+      .populate("userId", "name email")
+      .populate("companyId", "name email");
+    return cars;
+  }
+
   async getCarById(carId) {
     const car = await Car.findById(carId)
       .populate("userId", "name email")
