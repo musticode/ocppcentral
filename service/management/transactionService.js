@@ -193,6 +193,27 @@ class TransactionService {
     return await this.transaction.findByIdAndDelete(id);
   }
 
+  async fetchEventsByChargePointId(chargePointId, limit = 200) {
+    if (!chargePointId) {
+      throw new Error("Charge Point ID is required");
+    }
+
+    const transactions = await this.transaction
+      .find({ chargePointId })
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit));
+
+    return transactions.map((transaction) => ({
+      id: transaction._id,
+      chargePointId: transaction.chargePointId,
+      connectorId: transaction.connectorId,
+      type: "StartTransaction",
+      message: "Transaction started",
+      timestamp: transaction.timestamp,
+      severity: "info",
+    }));
+  }
+
   async fetchCompanyEvents(companyId, limit = 200) {
     if (!companyId) {
       throw new Error("Company ID is required");

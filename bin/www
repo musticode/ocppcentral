@@ -15,6 +15,7 @@ import debug from "debug";
 import http from "http";
 import ocppHandler from "../service/ocpp/ocppHandler.js";
 import authorize from "../service/ocpp/authorize.js";
+import { startCronJobs } from "../scripts/cronJobs.js";
 /**
  * Get port from environment and store in Express.
  */
@@ -144,7 +145,10 @@ function onListening() {
   console.log("HTTP Server listening on " + bind);
   console.log(
     "WebSocket endpoint: ws://localhost:" +
-      (typeof addr === "string" ? "3000" : addr.port) +
-      "/{chargePointId}"
+    (typeof addr === "string" ? "3000" : addr.port) +
+    "/{chargePointId}"
   );
+
+  // Start scheduled cron jobs
+  startCronJobs();
 }

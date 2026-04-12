@@ -15,13 +15,37 @@ export const getUserById = async (id) => {
 };
 
 export const getUsersByCompanyId = async (companyId) => {
-
   if (!companyId) {
     throw new Error("No companyId provided");
   }
 
   return await User.find({ companyId }).lean().exec();
-}
+};
+
+export const assignUserToCompany = async (companyId, userId) => {
+  if (!companyId || !userId) {
+    throw new Error("Company ID and User ID are required");
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  const company = await Company.findOne({ companyId: companyId });
+  if (!company) {
+    throw new Error("Company not found");
+  }
+
+  user.companyId = company.id;
+  user.companyName = company.name;
+  await user.save();
+
+  // Check if user should have idTag after joining company
+  await ensureUserHasIdTagIfNeeded(user._id);
+
+  return await User.findById(userId).populate("IdTag");
+};
 
 export const getAllUsers = async () => {
   console.log("getAllUsers");
