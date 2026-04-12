@@ -11,6 +11,11 @@ export class ChargePointService {
   async createChargePoint(chargePointData) {
     console.log(chargePointData);
 
+    // Default identifier to chargePointId if not provided
+    if (!chargePointData.identifier && chargePointData.chargePointId) {
+      chargePointData.identifier = chargePointData.chargePointId;
+    }
+
     if (
       await ChargePoint.exists({ chargePointId: chargePointData.chargePointId })
     ) {

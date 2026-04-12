@@ -27,13 +27,22 @@ router.get("/listAllSessions", async (req, res) => {
 });
 
 router.get("/events", async (req, res) => {
-  const companyId = req.query.companyId;
-  const limit = req.query.limit;
+  const { companyId, chargePointId, limit } = req.query;
+
+  if (!companyId && !chargePointId) {
+    return res.status(400).json({
+      success: false,
+      error: "Either companyId or chargePointId query param is required",
+    });
+  }
+
   try {
-    const events = await TransactionService.fetchCompanyEvents(companyId, limit);
-    console.log("Events:", events);
-    console.log("Events length:", events.length);
-    console.log("Events type:", typeof events);
+    let events;
+    if (chargePointId) {
+      events = await TransactionService.fetchEventsByChargePointId(chargePointId, limit);
+    } else {
+      events = await TransactionService.fetchCompanyEvents(companyId, limit);
+    }
     res.json({
       success: true,
       data: events

@@ -10,6 +10,8 @@ import authRouter from "./routes/auth.js";
 import carRoute from "./routes/car.js";
 import centralSystemRoute from "./routes/centralSystem.js";
 import chargePointRoute from "./routes/chargePointRoute.js";
+import chargingProfileRoute from "./routes/chargingProfile.js";
+import userChargingProfileRoute from "./routes/userChargingProfile.js";
 import companyRoute from "./routes/company.js";
 import config from "./config/environments.js";
 import connectDB from "./configuration/db.js";
@@ -104,6 +106,8 @@ app.use("/api/fleet-vehicles", fleetVehicleRoute);
 app.use("/api/fleet-assignments", fleetAssignmentRoute);
 app.use("/api/fleet-maintenance", fleetMaintenanceRoute);
 app.use("/api/fleet-analytics", fleetAnalyticsRoute);
+app.use("/api/charging-profiles", chargingProfileRoute);
+app.use("/api/user-charging-profiles", userChargingProfileRoute);
 
 // Swagger API documentation
 app.use(

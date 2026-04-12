@@ -73,6 +73,14 @@ const options = {
       { name: "Fleet Maintenance", description: "Fleet maintenance" },
       { name: "Fleet Analytics", description: "Fleet analytics" },
       {
+        name: "Charging Profiles",
+        description: "OCPP charging profile management (smart charging)",
+      },
+      {
+        name: "User Charging Profiles",
+        description: "User smart charging profiles with transaction-based optimization",
+      },
+      {
         name: "Central System",
         description: "OCPP central system (charge point control)",
       },
@@ -782,39 +790,39 @@ const options = {
         },
       },
       "/api/central-system/charge-points/{chargePointId}/change-configuration":
-        {
-          post: {
-            tags: ["Central System"],
-            summary: "Change configuration",
-            parameters: [
-              {
-                name: "chargePointId",
-                in: "path",
-                required: true,
-                schema: { type: "string" },
-              },
-            ],
-            requestBody: {
+      {
+        post: {
+          tags: ["Central System"],
+          summary: "Change configuration",
+          parameters: [
+            {
+              name: "chargePointId",
+              in: "path",
               required: true,
-              content: {
-                "application/json": {
-                  schema: {
-                    type: "object",
-                    required: ["key", "value"],
-                    properties: {
-                      key: { type: "string" },
-                      value: { type: "string" },
-                    },
+              schema: { type: "string" },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["key", "value"],
+                  properties: {
+                    key: { type: "string" },
+                    value: { type: "string" },
                   },
                 },
               },
             },
-            responses: {
-              200: { description: "OK" },
-              404: { description: "Not connected" },
-            },
+          },
+          responses: {
+            200: { description: "OK" },
+            404: { description: "Not connected" },
           },
         },
+      },
       "/api/central-system/charge-points/{chargePointId}/clear-cache": {
         post: {
           tags: ["Central System"],
@@ -858,70 +866,70 @@ const options = {
         },
       },
       "/api/central-system/charge-points/{chargePointId}/remote-start-transaction":
-        {
-          post: {
-            tags: ["Central System"],
-            summary: "Remote start transaction",
-            parameters: [
-              {
-                name: "chargePointId",
-                in: "path",
-                required: true,
-                schema: { type: "string" },
-              },
-            ],
-            requestBody: {
+      {
+        post: {
+          tags: ["Central System"],
+          summary: "Remote start transaction",
+          parameters: [
+            {
+              name: "chargePointId",
+              in: "path",
               required: true,
-              content: {
-                "application/json": {
-                  schema: {
-                    type: "object",
-                    required: ["idTag"],
-                    properties: {
-                      idTag: { type: "string" },
-                      connectorId: { type: "integer" },
-                    },
+              schema: { type: "string" },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["idTag"],
+                  properties: {
+                    idTag: { type: "string" },
+                    connectorId: { type: "integer" },
                   },
                 },
               },
             },
-            responses: {
-              200: { description: "OK" },
-              404: { description: "Not connected" },
-            },
+          },
+          responses: {
+            200: { description: "OK" },
+            404: { description: "Not connected" },
           },
         },
+      },
       "/api/central-system/charge-points/{chargePointId}/remote-stop-transaction":
-        {
-          post: {
-            tags: ["Central System"],
-            summary: "Remote stop transaction",
-            parameters: [
-              {
-                name: "chargePointId",
-                in: "path",
-                required: true,
-                schema: { type: "string" },
-              },
-            ],
-            requestBody: {
+      {
+        post: {
+          tags: ["Central System"],
+          summary: "Remote stop transaction",
+          parameters: [
+            {
+              name: "chargePointId",
+              in: "path",
               required: true,
-              content: {
-                "application/json": {
-                  schema: {
-                    type: "object",
-                    required: ["transactionId"],
-                    properties: { transactionId: { type: "integer" } },
-                  },
+              schema: { type: "string" },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["transactionId"],
+                  properties: { transactionId: { type: "integer" } },
                 },
               },
             },
-            responses: {
-              200: { description: "OK" },
-              404: { description: "Not connected" },
-            },
+          },
+          responses: {
+            200: { description: "OK" },
+            404: { description: "Not connected" },
           },
         },
+      },
       "/api/central-system/charge-points/{chargePointId}/reset": {
         post: {
           tags: ["Central System"],
@@ -1096,24 +1104,24 @@ const options = {
         },
       },
       "/api/central-system/charge-points/{chargePointId}/get-local-list-version":
-        {
-          get: {
-            tags: ["Central System"],
-            summary: "Get local list version",
-            parameters: [
-              {
-                name: "chargePointId",
-                in: "path",
-                required: true,
-                schema: { type: "string" },
-              },
-            ],
-            responses: {
-              200: { description: "Version" },
-              404: { description: "Not connected" },
+      {
+        get: {
+          tags: ["Central System"],
+          summary: "Get local list version",
+          parameters: [
+            {
+              name: "chargePointId",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
             },
+          ],
+          responses: {
+            200: { description: "Version" },
+            404: { description: "Not connected" },
           },
         },
+      },
       "/api/central-system/charge-points/{chargePointId}/reserve-now": {
         post: {
           tags: ["Central System"],
@@ -1216,21 +1224,21 @@ const options = {
         },
       },
       "/api/central-system/charge-points/{chargePointId}/trigger-message-types":
-        {
-          get: {
-            tags: ["Central System"],
-            summary: "List supported trigger message types",
-            parameters: [
-              {
-                name: "chargePointId",
-                in: "path",
-                required: true,
-                schema: { type: "string" },
-              },
-            ],
-            responses: { 200: { description: "Trigger message types" } },
-          },
+      {
+        get: {
+          tags: ["Central System"],
+          summary: "List supported trigger message types",
+          parameters: [
+            {
+              name: "chargePointId",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          responses: { 200: { description: "Trigger message types" } },
         },
+      },
       "/api/reservations": {
         get: {
           tags: ["Reservations"],
@@ -1866,6 +1874,334 @@ const options = {
             403: { description: "Access denied" },
             404: { description: "Payment method not found" },
             500: { description: "Error" },
+          },
+        },
+      },
+      "/api/charging-profiles": {
+        get: {
+          tags: ["Charging Profiles"],
+          summary: "Get all charging profiles with optional filters",
+          parameters: [
+            { name: "companyId", in: "query", schema: { type: "string" } },
+            { name: "chargePointId", in: "query", schema: { type: "string" } },
+            { name: "connectorId", in: "query", schema: { type: "integer" } },
+            { name: "chargingProfilePurpose", in: "query", schema: { type: "string", enum: ["ChargePointMaxProfile", "TxDefaultProfile", "TxProfile"] } },
+            { name: "chargingProfileKind", in: "query", schema: { type: "string", enum: ["Absolute", "Recurring", "Relative"] } },
+            { name: "isActive", in: "query", schema: { type: "boolean" } },
+            { name: "stackLevel", in: "query", schema: { type: "integer" } },
+          ],
+          responses: {
+            200: { description: "List of charging profiles" },
+            500: { description: "Error" },
+          },
+        },
+        post: {
+          tags: ["Charging Profiles"],
+          summary: "Create a new charging profile",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["chargingProfileId", "stackLevel", "chargingProfilePurpose", "chargingProfileKind", "chargingSchedule", "chargePointId", "connectorId"],
+                  properties: {
+                    chargingProfileId: { type: "integer" },
+                    chargePointId: { type: "string" },
+                    connectorId: { type: "integer" },
+                    companyId: { type: "string" },
+                    name: { type: "string" },
+                    description: { type: "string" },
+                    transactionId: { type: "integer" },
+                    stackLevel: { type: "integer", minimum: 0 },
+                    chargingProfilePurpose: { type: "string", enum: ["ChargePointMaxProfile", "TxDefaultProfile", "TxProfile"] },
+                    chargingProfileKind: { type: "string", enum: ["Absolute", "Recurring", "Relative"] },
+                    recurrencyKind: { type: "string", enum: ["Daily", "Weekly"] },
+                    validFrom: { type: "string", format: "date-time" },
+                    validTo: { type: "string", format: "date-time" },
+                    chargingSchedule: {
+                      type: "object",
+                      required: ["chargingRateUnit", "chargingSchedulePeriod"],
+                      properties: {
+                        duration: { type: "integer" },
+                        startSchedule: { type: "string", format: "date-time" },
+                        chargingRateUnit: { type: "string", enum: ["W", "A"] },
+                        chargingSchedulePeriod: {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            required: ["startPeriod", "limit"],
+                            properties: {
+                              startPeriod: { type: "integer" },
+                              limit: { type: "number" },
+                              numberPhases: { type: "integer" },
+                            },
+                          },
+                        },
+                        minChargingRate: { type: "number" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            201: { description: "Charging profile created" },
+            400: { description: "Validation error" },
+          },
+        },
+      },
+      "/api/charging-profiles/company/{companyId}": {
+        get: {
+          tags: ["Charging Profiles"],
+          summary: "Get charging profiles by company",
+          parameters: [
+            { name: "companyId", in: "path", required: true, schema: { type: "string" } },
+            { name: "chargePointId", in: "query", schema: { type: "string" } },
+            { name: "isActive", in: "query", schema: { type: "boolean" } },
+          ],
+          responses: { 200: { description: "Charging profiles" } },
+        },
+      },
+      "/api/charging-profiles/charge-point/{chargePointId}": {
+        get: {
+          tags: ["Charging Profiles"],
+          summary: "Get charging profiles for a charge point",
+          parameters: [
+            { name: "chargePointId", in: "path", required: true, schema: { type: "string" } },
+            { name: "connectorId", in: "query", schema: { type: "integer" } },
+            { name: "chargingProfilePurpose", in: "query", schema: { type: "string" } },
+            { name: "isActive", in: "query", schema: { type: "boolean" } },
+          ],
+          responses: { 200: { description: "Charging profiles" } },
+        },
+      },
+      "/api/charging-profiles/connector/{chargePointId}/{connectorId}": {
+        get: {
+          tags: ["Charging Profiles"],
+          summary: "Get active charging profiles for a connector",
+          parameters: [
+            { name: "chargePointId", in: "path", required: true, schema: { type: "string" } },
+            { name: "connectorId", in: "path", required: true, schema: { type: "integer" } },
+          ],
+          responses: { 200: { description: "Active charging profiles" } },
+        },
+      },
+      "/api/charging-profiles/clear/{chargePointId}": {
+        post: {
+          tags: ["Charging Profiles"],
+          summary: "Clear charging profiles for a charge point (OCPP-style)",
+          parameters: [
+            { name: "chargePointId", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    chargingProfileId: { type: "integer" },
+                    connectorId: { type: "integer" },
+                    chargingProfilePurpose: { type: "string", enum: ["ChargePointMaxProfile", "TxDefaultProfile", "TxProfile"] },
+                    stackLevel: { type: "integer" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: "Profiles cleared" },
+            400: { description: "Error" },
+          },
+        },
+      },
+      "/api/charging-profiles/{id}": {
+        get: {
+          tags: ["Charging Profiles"],
+          summary: "Get charging profile by ID",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "Charging profile" },
+            404: { description: "Not found" },
+          },
+        },
+        put: {
+          tags: ["Charging Profiles"],
+          summary: "Update charging profile",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            content: { "application/json": { schema: { type: "object" } } },
+          },
+          responses: {
+            200: { description: "Updated" },
+            400: { description: "Error" },
+          },
+        },
+        delete: {
+          tags: ["Charging Profiles"],
+          summary: "Delete charging profile",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "Deleted" },
+            400: { description: "Error" },
+          },
+        },
+      },
+      "/api/charging-profiles/{id}/deactivate": {
+        patch: {
+          tags: ["Charging Profiles"],
+          summary: "Deactivate charging profile (soft delete)",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "Deactivated" },
+            400: { description: "Error" },
+          },
+        },
+      },
+      "/api/user-charging-profiles": {
+        get: {
+          tags: ["User Charging Profiles"],
+          summary: "Get all user charging profiles with optional filters",
+          parameters: [
+            { name: "userId", in: "query", schema: { type: "string" } },
+            { name: "companyId", in: "query", schema: { type: "string" } },
+            { name: "isActive", in: "query", schema: { type: "boolean" } },
+          ],
+          responses: {
+            200: { description: "List of user charging profiles" },
+            500: { description: "Error" },
+          },
+        },
+        post: {
+          tags: ["User Charging Profiles"],
+          summary: "Create a new user charging profile",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["userId"],
+                  properties: {
+                    userId: { type: "string" },
+                    companyId: { type: "string" },
+                    name: { type: "string" },
+                    description: { type: "string" },
+                    preferences: {
+                      type: "object",
+                      properties: {
+                        preferredChargingRateUnit: { type: "string", enum: ["W", "A"] },
+                        preferredMaxLimit: { type: "number" },
+                        preferredStartTime: { type: "string", description: "HH:mm" },
+                        preferredEndTime: { type: "string", description: "HH:mm" },
+                        ecoChargingEnabled: { type: "boolean" },
+                        maxBudgetPerSession: { type: "number" },
+                        targetSoC: { type: "number", minimum: 0, maximum: 100 },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            201: { description: "Profile created" },
+            400: { description: "Validation error" },
+          },
+        },
+      },
+      "/api/user-charging-profiles/recalculate-all": {
+        post: {
+          tags: ["User Charging Profiles"],
+          summary: "Manually trigger recalculation for all active profiles (same as daily cron)",
+          responses: {
+            200: { description: "Recalculation summary" },
+            500: { description: "Error" },
+          },
+        },
+      },
+      "/api/user-charging-profiles/user/{userId}": {
+        get: {
+          tags: ["User Charging Profiles"],
+          summary: "Get active charging profile for a user",
+          parameters: [
+            { name: "userId", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "User charging profile or null" },
+          },
+        },
+      },
+      "/api/user-charging-profiles/{id}": {
+        get: {
+          tags: ["User Charging Profiles"],
+          summary: "Get user charging profile by ID",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "User charging profile" },
+            404: { description: "Not found" },
+          },
+        },
+        put: {
+          tags: ["User Charging Profiles"],
+          summary: "Update user charging profile (preferences)",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            content: { "application/json": { schema: { type: "object" } } },
+          },
+          responses: {
+            200: { description: "Updated" },
+            400: { description: "Error" },
+          },
+        },
+        delete: {
+          tags: ["User Charging Profiles"],
+          summary: "Delete user charging profile",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "Deleted" },
+            400: { description: "Error" },
+          },
+        },
+      },
+      "/api/user-charging-profiles/{id}/deactivate": {
+        patch: {
+          tags: ["User Charging Profiles"],
+          summary: "Deactivate user charging profile (soft delete)",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "Deactivated" },
+            400: { description: "Error" },
+          },
+        },
+      },
+      "/api/user-charging-profiles/{id}/recalculate": {
+        post: {
+          tags: ["User Charging Profiles"],
+          summary: "Manually recalculate a single user charging profile from transaction history",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            200: { description: "Recalculated profile" },
+            400: { description: "Error" },
           },
         },
       },
