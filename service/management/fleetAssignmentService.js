@@ -42,14 +42,18 @@ class FleetAssignmentService {
       status: { $in: ["Pending", "Active"] },
       $or: [
         {
-          scheduledStart: { $lte: scheduledEnd || new Date(scheduledStart.getTime() + 86400000) },
+          scheduledStart: {
+            $lte: scheduledEnd || new Date(scheduledStart.getTime() + 86400000),
+          },
           scheduledEnd: { $gte: scheduledStart },
         },
       ],
     });
 
     if (conflictingAssignment) {
-      throw new Error("Vehicle already has a conflicting assignment for this time period");
+      throw new Error(
+        "Vehicle already has a conflicting assignment for this time period",
+      );
     }
 
     const assignment = new FleetAssignment({
@@ -68,7 +72,9 @@ class FleetAssignmentService {
     await assignment.save();
 
     if (vehicle.status === "Available") {
-      await fleetVehicleService.updateFleetVehicle(fleetVehicleId, { status: "Assigned" });
+      await fleetVehicleService.updateFleetVehicle(fleetVehicleId, {
+        status: "Assigned",
+      });
     }
 
     return await this.getAssignmentById(assignment._id);
@@ -88,7 +94,13 @@ class FleetAssignmentService {
     return assignment;
   }
 
-  async listAssignments({ fleetId, driverId, status, startDate, endDate } = {}) {
+  async listAssignments({
+    fleetId,
+    driverId,
+    status,
+    startDate,
+    endDate,
+  } = {}) {
     const query = {};
     if (fleetId) query.fleetId = fleetId;
     if (driverId) query.driverId = driverId;
@@ -116,7 +128,9 @@ class FleetAssignmentService {
     if (!assignment) throw new Error("Assignment not found");
 
     if (assignment.status !== "Pending") {
-      throw new Error("Assignment cannot be started. Current status: " + assignment.status);
+      throw new Error(
+        "Assignment cannot be started. Current status: " + assignment.status,
+      );
     }
 
     assignment.status = "Active";
@@ -144,7 +158,9 @@ class FleetAssignmentService {
     if (!assignment) throw new Error("Assignment not found");
 
     if (assignment.status !== "Active") {
-      throw new Error("Assignment cannot be completed. Current status: " + assignment.status);
+      throw new Error(
+        "Assignment cannot be completed. Current status: " + assignment.status,
+      );
     }
 
     assignment.status = "Completed";
@@ -188,7 +204,8 @@ class FleetAssignmentService {
     }
 
     assignment.status = "Cancelled";
-    assignment.notes = (assignment.notes || "") + `\nCancellation reason: ${reason}`;
+    assignment.notes =
+      (assignment.notes || "") + `\nCancellation reason: ${reason}`;
 
     await assignment.save();
 
@@ -271,6 +288,17 @@ class FleetAssignmentService {
       .limit(limit);
   }
 
+  async fetchAssignedVehicles(fleetId, status = "Active") {
+    if (!fleetId) throw new Error("fleetId is required");
+
+    const query = { fleetId, status };
+
+    return await FleetAssignment.find(query)
+      .populate("fleetVehicleId", "carId")
+      .populate("driverId", "name email phone")
+      .sort({ scheduledStart: 1 });
+  }
+
   async getAssignmentStats(fleetId, startDate, endDate) {
     const query = { fleetId };
     if (startDate || endDate) {
@@ -282,12 +310,18 @@ class FleetAssignmentService {
     const assignments = await FleetAssignment.find(query);
 
     const totalAssignments = assignments.length;
-    const completedAssignments = assignments.filter((a) => a.status === "Completed").length;
-    const activeAssignments = assignments.filter((a) => a.status === "Active").length;
-    const cancelledAssignments = assignments.filter((a) => a.status === "Cancelled").length;
+    const completedAssignments = assignments.filter(
+      (a) => a.status === "Completed",
+    ).length;
+    const activeAssignments = assignments.filter(
+      (a) => a.status === "Active",
+    ).length;
+    const cancelledAssignments = assignments.filter(
+      (a) => a.status === "Cancelled",
+    ).length;
 
     const completedWithDamage = assignments.filter(
-      (a) => a.status === "Completed" && a.damageReported
+      (a) => a.status === "Completed" && a.damageReported,
     ).length;
 
     const totalDistance = assignments
@@ -301,7 +335,10 @@ class FleetAssignmentService {
       cancelledAssignments,
       completedWithDamage,
       totalDistance,
-      completionRate: totalAssignments > 0 ? Math.round((completedAssignments / totalAssignments) * 100) : 0,
+      completionRate:
+        totalAssignments > 0
+          ? Math.round((completedAssignments / totalAssignments) * 100)
+          : 0,
     };
   }
 }

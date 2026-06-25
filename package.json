@@ -11,6 +11,7 @@
     "start:production": "NODE_ENV=production node -r dotenv/config ./bin/www dotenv_config_path=.env.production",
     "test": "vitest run",
     "test:watch": "vitest",
+    "seed": "NODE_ENV=development node scripts/demo-data/index.js",
     "build": "npm install && npm install -g nodemon"
   },
   "dependencies": {
@@ -20,6 +21,7 @@
     "debug": "~2.6.9",
     "dotenv": "^17.2.3",
     "express": "~4.16.1",
+    "google-auth-library": "^10.7.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.0.1",
     "morgan": "~1.9.1",

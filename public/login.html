@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Secure Login | OCPP Central Management System</title>
+    <meta name="description" content="Access your OCPP Central Management System account. Securely monitor and manage charging stations, transaction histories, and authorized RFID tags." />
+    
+    <!-- Premium Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Google Identity Services client-side SDK -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <style>
+      :root {
+        --bg-color: #0b0f19;
+        --card-bg: rgba(17, 24, 39, 0.7);
+        --card-border: rgba(255, 255, 255, 0.08);
+        --text-primary: #f3f4f6;
+        --text-secondary: #9ca3af;
+        --primary-glow: #6366f1;
+        --secondary-glow: #a855f7;
+        --accent-color: #4f46e5;
+        --accent-hover: #4338ca;
+        --success-color: #10b981;
+        --error-color: #ef4444;
+        --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Outfit', sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow-x: hidden;
+        position: relative;
+      }
+
+      /* Animated Glowing Background Blobs */
+      .bg-glow-1 {
+        position: absolute;
+        width: 450px;
+        height: 450px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0) 70%);
+        top: -10%;
+        left: -10%;
+        z-index: -1;
+        animation: float-slow 15s infinite alternate;
+      }
+
+      .bg-glow-2 {
+        position: absolute;
+        width: 500px;
+        height: 500px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(168, 85, 247, 0.12) 0%, rgba(168, 85, 247, 0) 70%);
+        bottom: -10%;
+        right: -10%;
+        z-index: -1;
+        animation: float-slow 18s infinite alternate-reverse;
+      }
+
+      @keyframes float-slow {
+        0% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(50px, 30px) scale(1.1); }
+        100% { transform: translate(-30px, -50px) scale(0.95); }
+      }
+
+      .container {
+        width: 100%;
+        max-width: 480px;
+        padding: 20px;
+        z-index: 1;
+      }
+
+      /* Glassmorphic Auth Card */
+      .auth-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid var(--card-border);
+        border-radius: 24px;
+        box-shadow: var(--glass-shadow);
+        padding: 40px;
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .auth-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary-glow), var(--secondary-glow));
+      }
+
+      /* Logo / Header */
+      .brand-header {
+        text-align: center;
+        margin-bottom: 35px;
+      }
+
+      .brand-logo {
+        font-size: 32px;
+        margin-bottom: 8px;
+        display: inline-block;
+        animation: pulse 3s infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+      }
+
+      .brand-title {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        background: linear-gradient(135deg, #ffffff 30%, #a5b4fc 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .brand-subtitle {
+        color: var(--text-secondary);
+        font-size: 14px;
+        margin-top: 6px;
+      }
+
+      /* Notification Toast */
+      .toast {
+        padding: 12px 16px;
+        border-radius: 12px;
+        font-size: 14px;
+        margin-bottom: 20px;
+        display: none;
+        animation: slide-in 0.3s ease-out;
+        border: 1px solid transparent;
+      }
+
+      .toast.success {
+        display: flex;
+        background: rgba(16, 185, 129, 0.1);
+        border-color: rgba(16, 185, 129, 0.2);
+        color: var(--success-color);
+      }
+
+      .toast.error {
+        display: flex;
+        background: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.2);
+        color: var(--error-color);
+      }
+
+      @keyframes slide-in {
+        from { transform: translateY(-10px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+
+      /* Form Fields */
+      .form-group {
+        margin-bottom: 20px;
+        position: relative;
+      }
+
+      .form-label {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .input-wrapper {
+        position: relative;
+      }
+
+      .form-input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        padding: 14px 16px;
+        font-family: inherit;
+        font-size: 15px;
+        color: white;
+        transition: all 0.3s ease;
+      }
+
+      .form-input:focus {
+        outline: none;
+        border-color: var(--primary-glow);
+        background: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+      }
+
+      .btn {
+        width: 100%;
+        padding: 14px;
+        border-radius: 12px;
+        border: none;
+        font-family: inherit;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .btn-accent {
+        background: var(--accent-color);
+        color: white;
+        box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.4);
+      }
+
+      .btn-accent:hover {
+        background: var(--accent-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px 0 rgba(79, 70, 229, 0.6);
+      }
+
+      .btn-accent:active {
+        transform: translateY(1px);
+      }
+
+      /* Divider */
+      .divider {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        margin: 25px 0;
+        color: var(--text-secondary);
+        font-size: 13px;
+      }
+
+      .divider::before, .divider::after {
+        content: '';
+        flex: 1;
+        border-bottom: 1px solid var(--card-border);
+      }
+
+      .divider:not(:empty)::before {
+        margin-right: .5em;
+      }
+
+      .divider:not(:empty)::after {
+        margin-left: .5em;
+      }
+
+      /* Native Google Button Wrapper */
+      .google-btn-wrapper {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 16px;
+        min-height: 40px;
+      }
+
+      /* Simulated Google Button */
+      .btn-google-mock {
+        background: white;
+        color: #1f2937;
+        border: 1px solid #e5e7eb;
+      }
+
+      .btn-google-mock:hover {
+        background: #f9fafb;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+      }
+
+      .btn-google-mock svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      /* Footer Link */
+      .auth-footer {
+        text-align: center;
+        margin-top: 25px;
+        font-size: 14px;
+        color: var(--text-secondary);
+      }
+
+      .auth-link {
+        color: var(--primary-glow);
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.2s;
+      }
+
+      .auth-link:hover {
+        color: var(--secondary-glow);
+        text-decoration: underline;
+      }
+
+      /* Logged In Dashboard Card State */
+      .profile-section {
+        display: none;
+        animation: fade-in 0.4s ease-out;
+      }
+
+      @keyframes fade-in {
+        from { opacity: 0; transform: scale(0.98); }
+        to { opacity: 1; transform: scale(1); }
+      }
+
+      .profile-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 30px;
+      }
+
+      .avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-glow), var(--secondary-glow));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        font-weight: 700;
+        color: white;
+        border: 4px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 15px;
+        box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
+      }
+
+      .profile-name {
+        font-size: 20px;
+        font-weight: 600;
+        color: white;
+      }
+
+      .profile-email {
+        color: var(--text-secondary);
+        font-size: 14px;
+        margin-top: 4px;
+      }
+
+      .badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-top: 8px;
+        letter-spacing: 0.5px;
+      }
+
+      .badge.admin {
+        background: rgba(168, 85, 247, 0.2);
+        color: #d8b4fe;
+        border: 1px solid rgba(168, 85, 247, 0.3);
+      }
+
+      .badge.customer {
+        background: rgba(59, 130, 246, 0.2);
+        color: #93c5fd;
+        border: 1px solid rgba(59, 130, 246, 0.3);
+      }
+
+      .details-list {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--card-border);
+        border-radius: 16px;
+        padding: 18px;
+        margin-bottom: 25px;
+      }
+
+      .details-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        font-size: 14px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .details-row:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+
+      .details-row:first-child {
+        padding-top: 0;
+      }
+
+      .details-label {
+        color: var(--text-secondary);
+      }
+
+      .details-value {
+        font-weight: 500;
+        color: white;
+      }
+
+      .token-box {
+        margin-top: 15px;
+        position: relative;
+      }
+
+      .token-textarea {
+        width: 100%;
+        height: 60px;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid var(--card-border);
+        border-radius: 8px;
+        padding: 8px;
+        font-family: monospace;
+        font-size: 11px;
+        color: #a7f3d0;
+        resize: none;
+        outline: none;
+      }
+
+      .copy-btn {
+        position: absolute;
+        right: 8px;
+        bottom: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: var(--text-primary);
+        font-size: 11px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .copy-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--card-border);
+        color: white;
+        margin-top: 10px;
+      }
+
+      .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      /* Form view wrap */
+      .form-section {
+        transition: all 0.3s ease;
+      }
+
+      /* Loader spinner */
+      .loader {
+        border: 3px solid rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        border-top: 3px solid white;
+        width: 20px;
+        height: 20px;
+        animation: spin 1s linear infinite;
+        display: none;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      /* Developer Sandbox Alert Banner */
+      .sandbox-banner {
+        background: linear-gradient(90deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+        border: 1px dashed rgba(99, 102, 241, 0.3);
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 25px;
+        font-size: 13px;
+        color: #c7d2fe;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bg-glow-1"></div>
+    <div class="bg-glow-2"></div>
+
+    <main class="container">
+      <div class="auth-card">
+        <!-- BRAND LOGO & HEADER -->
+        <div class="brand-header">
+          <div class="brand-logo">🔌</div>
+          <h1 class="brand-title">OCPP Central</h1>
+          <p class="brand-subtitle">Central Management System Access</p>
+        </div>
+
+        <!-- Notification Toast -->
+        <div id="toast" class="toast"></div>
+
+        <!-- SIGN IN FORM VIEW -->
+        <div id="formSection" class="form-section">
+          <!-- Standard Form (Required by Design System, but styled modernly) -->
+          <form id="loginForm" onsubmit="handleEmailLogin(event)">
+            <div class="form-group">
+              <label for="email" class="form-label">Email Address</label>
+              <input 
+                type="email" 
+                id="email" 
+                class="form-input" 
+                placeholder="name@company.com" 
+                required 
+                autocomplete="username"
+              />
+            </div>
+            
+            <div class="form-group">
+              <label for="password" class="form-label">Password</label>
+              <input 
+                type="password" 
+                id="password" 
+                class="form-input" 
+                placeholder="••••••••" 
+                required
+                autocomplete="current-password"
+              />
+            </div>
+
+            <button type="submit" id="loginBtn" class="btn btn-accent">
+              <span id="loginText">Sign In</span>
+              <div id="loginLoader" class="loader"></div>
+            </button>
+          </form>
+
+          <div class="divider">or continue with</div>
+
+          <!-- NATIVE GOOGLE SIGN-IN BUTTON CONTAINER -->
+          <div class="google-btn-wrapper">
+            <div id="g_id_onload"
+                 data-client_id=""
+                 data-context="signin"
+                 data-ux_mode="popup"
+                 data-callback="handleGoogleResponse"
+                 data-auto_prompt="false">
+            </div>
+            <div class="g_id_signin"
+                 data-type="standard"
+                 data-shape="rectangular"
+                 data-theme="filled_black"
+                 data-text="signin_with"
+                 data-size="large"
+                 data-logo_alignment="left">
+            </div>
+          </div>
+
+          <!-- SANDBOX / SIMULATED GOOGLE LOGIN (For Testing & Verification) -->
+          <div class="sandbox-banner">
+            <span>🛠️</span>
+            <span>Client ID not configured yet? Use the simulated button to test the Google OAuth database integration.</span>
+          </div>
+
+          <button id="mockGoogleBtn" onclick="handleMockGoogleLogin()" class="btn btn-google-mock">
+            <svg viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+              <g transform="matrix(1, 0, 0, 1, 0, 0)">
+                <path d="M21.35,11.1H12v2.7h5.38C16.88,15.75,14.77,17,12,17c-3.37,0-6-2.63-6-6s2.63-6,6-6c1.63,0,3,0.6,4.05,1.58l2.01-2.01C16.27,2.83,14.24,2,12,2c-4.97,0-9,4.03-9,9s4.03,9,9,9c4.18,0,7.95-3,7.95-9C19.95,11.6,19.86,11.1,21.35,11.1z" fill="#4285F4"/>
+              </g>
+            </svg>
+            <span>Simulate Google Login</span>
+          </button>
+
+          <div class="auth-footer">
+            Don't have an account? <a href="#" class="auth-link" onclick="showRegisterNotice()">Sign Up</a>
+          </div>
+        </div>
+
+        <!-- PROFILE VIEW (When Authenticated) -->
+        <div id="profileSection" class="profile-section">
+          <div class="profile-header">
+            <div id="userAvatar" class="avatar">U</div>
+            <h2 id="userName" class="profile-name">User Name</h2>
+            <p id="userEmail" class="profile-email">user@email.com</p>
+            <span id="userRole" class="badge customer">Customer</span>
+          </div>
+
+          <div class="details-list">
+            <div class="details-row">
+              <span class="details-label">User ID</span>
+              <span id="userId" class="details-value">-</span>
+            </div>
+            <div class="details-row">
+              <span class="details-label">Company</span>
+              <span id="userCompany" class="details-value">None</span>
+            </div>
+            <div class="token-box">
+              <span class="form-label" style="font-size:11px;">Active Session JWT</span>
+              <textarea id="jwtBox" class="token-textarea" readonly></textarea>
+              <button onclick="copyToken()" class="copy-btn">Copy</button>
+            </div>
+          </div>
+
+          <button onclick="navigateToDashboard()" class="btn btn-accent">
+            <span>Go to Central Dashboard</span>
+          </button>
+          
+          <button onclick="handleLogout()" class="btn btn-secondary">
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      // API endpoints helper
+      const API_LOGIN = '/api/auth/login';
+      const API_GOOGLE_LOGIN = '/api/auth/google';
+      const API_CONFIG = '/api/auth/config';
+      const API_ME = '/api/auth/me';
+
+      // Load config and check token on load
+      document.addEventListener('DOMContentLoaded', () => {
+        initGoogleSignIn();
+        checkActiveSession();
+      });
+
+      // Show temporary screen messages
+      function showToast(message, isError = false) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = `toast ${isError ? 'error' : 'success'}`;
+        toast.style.display = 'flex';
+        setTimeout(() => {
+          toast.style.display = 'none';
+        }, 5000);
+      }
+
+      // Initialize the Google GSI configuration using API Config values
+      async function initGoogleSignIn() {
+        try {
+          const response = await fetch(API_CONFIG);
+          const data = await response.json();
+          
+          if (data.success && data.googleClientId) {
+            // Set the client ID in the DOM configuration elements
+            const loadConfig = document.getElementById('g_id_onload');
+            if (loadConfig) {
+              loadConfig.setAttribute('data-client_id', data.googleClientId);
+              
+              // Force SDK to re-parse the DOM configuration
+              if (window.google && window.google.accounts) {
+                window.google.accounts.id.initialize({
+                  client_id: data.googleClientId,
+                  callback: handleGoogleResponse
+                });
+                window.google.accounts.id.renderButton(
+                  document.querySelector('.g_id_signin'),
+                  { theme: "filled_black", size: "large", type: "standard" }
+                );
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Failed to load Google configuration:", error);
+        }
+      }
+
+      // Handle the callback from Google One Tap or Google Sign-In Button
+      async function handleGoogleResponse(googleCredentialResponse) {
+        setLoader(true);
+        try {
+          const idToken = googleCredentialResponse.credential;
+          
+          const response = await fetch(API_GOOGLE_LOGIN, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ token: idToken })
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            saveSession(data.token, data.user);
+            showProfile(data.user, data.token);
+            showToast("Successfully logged in with Google!");
+          } else {
+            showToast(data.message || "Google Authentication failed.", true);
+          }
+        } catch (error) {
+          showToast("Network error during Google Sign-in.", true);
+        } finally {
+          setLoader(false);
+        }
+      }
+
+      // Simulate a Google login by generating a mock ID token and calling the backend
+      async function handleMockGoogleLogin() {
+        setLoader(true);
+        try {
+          // Generate a simple mock ID token
+          const rand = Math.floor(Math.random() * 9000) + 1000;
+          const mockToken = `mock-google-token-${rand}`;
+          
+          const response = await fetch(API_GOOGLE_LOGIN, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ token: mockToken })
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            saveSession(data.token, data.user);
+            showProfile(data.user, data.token);
+            showToast("Logged in with Simulated Google OAuth!");
+          } else {
+            showToast(data.message || "Simulated login failed.", true);
+          }
+        } catch (error) {
+          showToast("Failed to connect to backend api.", true);
+        } finally {
+          setLoader(false);
+        }
+      }
+
+      // Handle standard form login
+      async function handleEmailLogin(event) {
+        event.preventDefault();
+        setLoader(true);
+
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+
+        try {
+          const response = await fetch(API_LOGIN, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            saveSession(data.token, data.user);
+            showProfile(data.user, data.token);
+            showToast("Successfully logged in!");
+          } else {
+            showToast(data.message || "Invalid credentials.", true);
+          }
+        } catch (error) {
+          showToast("Network error during login.", true);
+        } finally {
+          setLoader(false);
+        }
+      }
+
+      // Check for active token
+      async function checkActiveSession() {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+
+        try {
+          const response = await fetch(API_ME, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            showProfile(data.user, token);
+          } else {
+            // Token expired or invalid, clear session
+            handleLogout();
+          }
+        } catch (e) {
+          console.error("Session verification failed:", e);
+        }
+      }
+
+      // Save credentials in storage
+      function saveSession(token, user) {
+        localStorage.setItem('authToken', token);
+        localStorage.setItem('authUser', JSON.stringify(user));
+      }
+
+      // Show profile card state
+      function showProfile(user, token) {
+        document.getElementById('formSection').style.display = 'none';
+        
+        // Fill profile info
+        document.getElementById('userName').textContent = user.name || 'User';
+        document.getElementById('userEmail').textContent = user.email || 'No email';
+        document.getElementById('userId').textContent = user.id || '-';
+        document.getElementById('userCompany').textContent = user.companyName || 'None';
+        document.getElementById('jwtBox').value = token;
+        
+        // Avatar letter
+        const initial = (user.name || 'U').charAt(0).toUpperCase();
+        document.getElementById('userAvatar').textContent = initial;
+
+        // Role Badge styling
+        const roleBadge = document.getElementById('userRole');
+        roleBadge.textContent = user.role || 'customer';
+        roleBadge.className = `badge ${user.role === 'admin' ? 'admin' : 'customer'}`;
+
+        document.getElementById('profileSection').style.display = 'block';
+      }
+
+      // Clear credentials
+      function handleLogout() {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('authUser');
+        
+        document.getElementById('profileSection').style.display = 'none';
+        document.getElementById('formSection').style.display = 'block';
+        document.getElementById('loginForm').reset();
+      }
+
+      function copyToken() {
+        const copyText = document.getElementById('jwtBox');
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(copyText.value);
+        showToast("JWT token copied to clipboard!");
+      }
+
+      function navigateToDashboard() {
+        window.location.href = '/index.html';
+      }
+
+      function showRegisterNotice() {
+        alert("Registration requires setting up a corporate company. Please use the simulated Google Login or email login to proceed immediately.");
+      }
+
+      function setLoader(show) {
+        const textSpan = document.getElementById('loginText');
+        const loaderDiv = document.getElementById('loginLoader');
+        const loginBtn = document.getElementById('loginBtn');
+        const mockBtn = document.getElementById('mockGoogleBtn');
+
+        if (show) {
+          textSpan.style.display = 'none';
+          loaderDiv.style.display = 'block';
+          loginBtn.disabled = true;
+          mockBtn.disabled = true;
+        } else {
+          textSpan.style.display = 'block';
+          loaderDiv.style.display = 'none';
+          loginBtn.disabled = false;
+          mockBtn.disabled = false;
+        }
+      }
+    </script>
+  </body>
+</html>

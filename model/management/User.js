@@ -13,6 +13,7 @@ const UserSchema = new Schema({
   },
   companyId: { type: String }, // Optional: null for customers
   companyName: { type: String }, // Optional: null for customers
+  googleId: { type: String, unique: true, sparse: true },
   IdTag: [{ type: mongoose.Schema.Types.ObjectId, ref: "IdTag" }],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },

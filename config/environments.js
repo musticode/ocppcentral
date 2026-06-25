@@ -38,6 +38,8 @@ const loadEnvironment = () => {
     enableRateLimiting: process.env.ENABLE_RATE_LIMITING === 'true',
     rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000'),
     rateLimitMaxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
+    googleClientId: process.env.GOOGLE_CLIENT_ID,
+    googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
   };
 };
 
