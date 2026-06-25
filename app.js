@@ -6,6 +6,7 @@
 // var indexRouter = require("./routes/index");
 // var usersRouter = require("./routes/users");
 
+import apiRouter from "./routes/api.js";
 import authRouter from "./routes/auth.js";
 import carRoute from "./routes/car.js";
 import centralSystemRoute from "./routes/centralSystem.js";
@@ -84,7 +85,7 @@ app.get("/health", (req, res) => {
 
 // app.use("/", indexRouter);
 app.use("/users", usersRouter); //
-// app.use("/api", apiRouter);
+app.use("/api", apiRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/charge-points", chargePointRoute);
 app.use("/api/transactions", transactionRoute);

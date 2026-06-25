@@ -45,7 +45,7 @@ export class ChargePointService {
 
   async getAllChargePoints(companyId) {
     if (!companyId) {
-      throw new Error("Company ID is required");
+      return await this.chargePoint.find({}).populate("companyId");
     }
 
     const company = await Company.findOne({ id: companyId }).select("_id");

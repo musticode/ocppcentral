@@ -5,6 +5,7 @@ import {
   logoutUser,
   forgotPassword,
   resetPassword,
+  loginOrCreateGoogleUser,
 } from "../service/management/authService.js";
 import { authenticate } from "../middleware/authMiddleware.js";
 
@@ -36,6 +37,40 @@ router.post("/login", async (req, res) => {
       error: error.message,
     });
   }
+});
+
+router.post("/google", async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: "Google token is required",
+      });
+    }
+
+    const result = await loginOrCreateGoogleUser(token);
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Internal server error during Google login",
+      error: error.message,
+    });
+  }
+});
+
+router.get("/config", (req, res) => {
+  res.status(200).json({
+    success: true,
+    googleClientId: process.env.GOOGLE_CLIENT_ID || "",
+  });
 });
 
 router.post("/signup", async (req, res) => {

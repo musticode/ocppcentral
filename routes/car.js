@@ -10,9 +10,17 @@ const router = express.Router();
  * @desc    Get all cars with optional filters
  * @access  Private (Admin)
  */
-router.get("/", authenticate, authorize("admin"), async (req, res) => {
+router.get("/", authenticate, authorize("admin", "operator", "customer"), async (req, res) => {
   try {
-    const { userId, companyId, isActive, make, model, year } = req.query;
+    let { userId, companyId, isActive, make, model, year } = req.query;
+
+    if (req.userRole === "customer") {
+      userId = req.userId.toString();
+      companyId = undefined;
+    } else if (req.userRole === "operator") {
+      companyId = req.user.companyId;
+    }
+
     const data = await carService.listCars({
       userId,
       companyId,
@@ -60,9 +68,17 @@ router.get("/my-cars", authenticate, async (req, res) => {
  * @desc    Get car statistics
  * @access  Private (Admin)
  */
-router.get("/stats", authenticate, authorize("admin"), async (req, res) => {
+router.get("/stats", authenticate, authorize("admin", "operator", "customer"), async (req, res) => {
   try {
-    const { userId, companyId } = req.query;
+    let { userId, companyId } = req.query;
+
+    if (req.userRole === "customer") {
+      userId = req.userId.toString();
+      companyId = undefined;
+    } else if (req.userRole === "operator") {
+      companyId = req.user.companyId;
+    }
+
     const data = await carService.getCarStats(userId, companyId);
     return res.json({
       success: true,
